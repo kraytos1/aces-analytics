@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aces Analytics – Tournament Threat Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --bg-card: #151821;
+      --accent: #ff7a00;
+      --accent-soft: rgba(255, 122, 0, 0.2);
+      --text: #f5f5f5;
+      --muted: #a0a4b8;
+      --danger: #ff4b6a;
+      --success: #00c98b;
+      --border-radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+      background: radial-gradient(circle at top, #20253a 0, #05060a 55%);
+      color: var(--text);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(5, 6, 10, 0.9);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #ffd5a5, #ff7a00);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: #0b0c10;
+      box-shadow: 0 0 18px rgba(255, 122, 0, 0.7);
+    }
+    .nav {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .nav span {
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .nav span.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    main {
+      padding: 18px 24px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 4px 0 8px;
+      font-size: 26px;
+    }
+    .subheading {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    .status-line {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .card {
+      background: rgba(8, 10, 20, 0.95);
+      border-radius: var(--border-radius);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      padding: 16px 16px 18px;
+      margin-bottom: 16px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .file-input {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .file-input input { display: none; }
+
+    .mini-input,
+    .mini-select {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(10, 11, 20, 0.9);
+      color: var(--text);
+      font-size: 11px;
+      padding: 4px 8px;
+    }
+    .mini-input { width: 180px; }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+      gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .layout-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    thead { background: rgba(255, 255, 255, 0.04); }
+    th, td {
+      padding: 6px 8px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .empty-state {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    .top-row {
+      background: rgba(255, 122, 0, 0.14) !important;
+      box-shadow: inset 0 0 0 1px rgba(255, 122, 0, 0.45);
+    }
+    .our-team-row {
+      box-shadow: inset 0 0 0 1px rgba(0, 201, 139, 0.6);
+    }
+    .tier-pill {
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .tier-elite {
+      background: rgba(255, 215, 0, 0.2);
+      color: #ffd700;
+    }
+    .tier-strong {
+      background: rgba(0, 201, 139, 0.2);
+      color: #00c98b;
+    }
+    .tier-solid {
+      background: rgba(135, 206, 250, 0.18);
+      color: #8ad5ff;
+    }
+    .tier-underdog {
+      background: rgba(255, 75, 106, 0.18);
+      color: #ff8b9f;
+    }
+
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    th.sortable:hover {
+      background: rgba(255,255,255,0.04);
+    }
+    .sort-arrow {
+      font-size: 9px;
+      opacity: 0.8;
+      margin-left: 3px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--muted);
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .watch-list ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 6px 0 0;
+      font-size: 13px;
+    }
+    .watch-list li {
+      margin-bottom: 6px;
+    }
+    .watch-team {
+      font-weight: 600;
+    }
+    .watch-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .tier-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+
+    .pill-count {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      <div>Aces Analytics</div>
+    </div>
+    <nav class="nav">
+      <span onclick="location.href='team-hitting.html'">Team Hitting</span>
+      <span onclick="location.href='team-pitching.html'">Pitching</span>
+      <span onclick="location.href='player.html'">Players</span>
+      <span class="active" onclick="location.href='tournament.html'">Tournaments</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1 id="tournament-title">Tournament Threat Board</h1>
+    <div class="subheading">
+      Upload a simple <strong>tournament teams CSV</strong> and instantly see who the biggest threats are,
+      based on record and run differential. Top 3 teams are highlighted.
+    </div>
+
+    <!-- Setup card -->
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tournament Setup</div>
+          <div class="card-subtitle">Your team name + tournament CSV</div>
+        </div>
+        <span class="badge">
+          <span class="badge-dot"></span>
+          On-deck scouting
+        </span>
+      </div>
+
+      <div class="controls" style="margin-bottom:8px;">
+        <label>
+          <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:2px;">Your team name</span>
+          <input
+            type="text"
+            id="ourTeamName"
+            class="mini-input"
+            value="Delmarva Aces 12U East"
+          />
+        </label>
+
+        <label class="file-input">
+          <span>📄 Choose Tournament CSV (Team,Pool,G,W,L,RS,RA)</span>
+          <input type="file" id="tournamentCsv" accept=".csv" />
+        </label>
+
+        <label>
+          <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:2px;">Sort by</span>
+          <select id="sortBy" class="mini-select">
+            <option value="threat">Threat Score</option>
+            <option value="winPct">Win%</option>
+            <option value="rdPerG">RD/Game</option>
+            <option value="rd">Run Diff</option>
+            <option value="RS">Runs Scored</option>
+            <option value="RA">Runs Allowed (low)</option>
+          </select>
+        </label>
+
+        <label>
+          <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:2px;">Min games</span>
+          <input type="number" id="minGames" class="mini-input" value="1" min="0" />
+        </label>
+      </div>
+
+      <div class="status-line" id="tournamentStatus">
+        No tournament file loaded yet. Create a CSV with columns:
+        <code>Team,Pool,G,W,L,RS,RA</code>.
+      </div>
+    </section>
+
+    <div class="layout-grid">
+      <!-- Threat table -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Team Threat Rankings</div>
+            <div class="card-subtitle">
+              Based on Win%, Run Differential, and RD/Game. Click any heading to sort.
+            </div>
+          </div>
+        </div>
+
+        <div id="tableContainer">
+          <div class="empty-state">
+            Upload a Tournament CSV to see opponents ranked by threat level.
+          </div>
+        </div>
+      </section>
+
+      <!-- Watch list / tiers -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Watch List</div>
+            <div class="card-subtitle">
+              Top threats and tier breakdown for this event.
+            </div>
+          </div>
+        </div>
+
+        <div class="watch-list" id="watchListContainer">
+          <div class="empty-state">
+            Once you load a tournament file, this panel will highlight the top 3 opponents and
+            show how many teams fall into Elite / Strong / Solid / Underdog tiers.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // --- Helpers ---
+    function safeNumber(value) {
+      if (value === undefined || value === null || value === "") return 0;
+      const v = (typeof value === "string") ? value.replace(/[^0-9.\-]/g, "") : value;
+      const n = Number(v);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function clamp(v, min, max) {
+      return Math.min(max, Math.max(min, v));
+    }
+
+    function formatPct(v) {
+      if (!isFinite(v) || isNaN(v)) return ".000";
+      return v.toFixed(3).slice(1); // 0.600 -> .600
+    }
+
+    function format1(v) {
+      if (!isFinite(v) || isNaN(v)) return "0.0";
+      return v.toFixed(1);
+    }
+
+    function formatThreat(v) {
+      if (!isFinite(v) || isNaN(v)) return "0";
+      return Math.round(v).toString();
+    }
+
+    // Threat tiers
+    function tierFor(threat) {
+      if (threat >= 75) return "elite";
+      if (threat >= 60) return "strong";
+      if (threat >= 45) return "solid";
+      return "underdog";
+    }
+
+    function tierLabel(tier) {
+      switch (tier) {
+        case "elite": return "Elite";
+        case "strong": return "Strong";
+        case "solid": return "Solid";
+        case "underdog": return "Underdog";
+        default: return "";
+      }
+    }
+
+    function tierClass(tier) {
+      return "tier-" + tier;
+    }
+
+    const TOURNAMENT_STORAGE_KEY = "acesTournamentCsv";
+    const TOP_N = 3;
+    let teams = [];
+    let sortKey = "threat";
+    let sortDir = "desc"; // "asc" or "desc"
+
+    const ascPreferred = {
+      threat: false,
+      winPct: false,
+      rdPerG: false,
+      rd: false,
+      RS: false,
+      RA: true,
+      G: false
+    };
+
+    function defaultDirFor(key) {
+      return ascPreferred[key] ? "asc" : "desc";
+    }
+
+    function saveTournamentCsv(text) {
+      try {
+        localStorage.setItem(TOURNAMENT_STORAGE_KEY, text);
+      } catch (e) {
+        console.warn("Could not save tournament CSV", e);
+      }
+    }
+
+    function loadTournamentCsv() {
+      try {
+        return localStorage.getItem(TOURNAMENT_STORAGE_KEY);
+      } catch (e) {
+        console.warn("Could not read tournament CSV", e);
+        return null;
+      }
+    }
+
+    function computeThreatMetrics(rows) {
+      // Require header: Team,Pool,G,W,L,RS,RA
+      const header = rows[0].map(h => (h || "").trim());
+      const idxTeam = header.indexOf("Team");
+      const idxPool = header.indexOf("Pool");
+      const idxG    = header.indexOf("G");
+      const idxW    = header.indexOf("W");
+      const idxL    = header.indexOf("L");
+      const idxRS   = header.indexOf("RS");
+      const idxRA   = header.indexOf("RA");
+
+      if ([idxTeam, idxPool, idxG, idxW, idxL, idxRS, idxRA].some(i => i === -1)) {
+        alert("Tournament CSV must have header row: Team,Pool,G,W,L,RS,RA");
+        return [];
+      }
+
+      const dataRows = rows.slice(1).filter(r => r[idxTeam] && r[idxTeam].trim() !== "");
+
+      return dataRows.map(r => {
+        const team = (r[idxTeam] || "").trim();
+        const pool = (r[idxPool] || "").trim();
+        const G = safeNumber(r[idxG]);
+        const W = safeNumber(r[idxW]);
+        const L = safeNumber(r[idxL]);
+        const RS = safeNumber(r[idxRS]);
+        const RA = safeNumber(r[idxRA]);
+
+        const winPct = G > 0 ? W / G : 0;
+        const rd = RS - RA;
+        const rdPerG = G > 0 ? rd / G : 0;
+
+        // Threat score heuristic
+        let threat = 50 + winPct * 40 + rdPerG * 5;
+        threat = clamp(threat, 0, 100);
+
+        const tier = tierFor(threat);
+
+        return {
+          team, pool, G, W, L, RS, RA,
+          winPct, rd, rdPerG, threat, tier
+        };
+      });
+    }
+
+    function sortTeams(list) {
+      const key = sortKey;
+      const dir = sortDir;
+
+      return list.slice().sort((a, b) => {
+        const av = a[key] ?? 0;
+        const bv = b[key] ?? 0;
+        if (dir === "desc") return bv - av;
+        return av - bv;
+      });
+    }
+
+    function sortArrowFor(key) {
+      if (key !== sortKey) return "";
+      return sortDir === "desc"
+        ? '<span class="sort-arrow">▼</span>'
+        : '<span class="sort-arrow">▲</span>';
+    }
+
+    function renderTable() {
+      const container = document.getElementById("tableContainer");
+      const statusEl = document.getElementById("tournamentStatus");
+      if (!teams.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            Upload a Tournament CSV to see opponents ranked by threat level.
+          </div>`;
+        statusEl.textContent = "Tournament file not loaded.";
+        return;
+      }
+
+      const sortSelect = document.getElementById("sortBy");
+      const minGamesEl = document.getElementById("minGames");
+      const ourTeamName = (document.getElementById("ourTeamName").value || "").trim();
+
+      if (sortSelect && sortSelect.value !== sortKey) {
+        sortSelect.value = sortKey;
+      }
+
+      const minG = minGamesEl ? (Number(minGamesEl.value) || 0) : 0;
+
+      let filtered = teams.filter(t => t.G >= minG);
+
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            No teams match the min games filter.
+          </div>`;
+        statusEl.textContent = "Filtered view: 0 teams.";
+        renderWatchList([]);
+        return;
+      }
+
+      filtered = sortTeams(filtered);
+
+      const headerHtml = `
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Pool</th>
+            <th class="sortable" data-key="G">G ${sortArrowFor("G")}</th>
+            <th class="sortable" data-key="W">W ${sortArrowFor("W")}</th>
+            <th class="sortable" data-key="L">L ${sortArrowFor("L")}</th>
+            <th class="sortable" data-key="winPct">Win% ${sortArrowFor("winPct")}</th>
+            <th class="sortable" data-key="RS">RS ${sortArrowFor("RS")}</th>
+            <th class="sortable" data-key="RA">RA ${sortArrowFor("RA")}</th>
+            <th class="sortable" data-key="rd">RD ${sortArrowFor("rd")}</th>
+            <th class="sortable" data-key="rdPerG">RD/G ${sortArrowFor("rdPerG")}</th>
+            <th class="sortable" data-key="threat">Threat ${sortArrowFor("threat")}</th>
+            <th>Tier</th>
+          </tr>
+        </thead>
+      `;
+
+      const rowsHtml = filtered.map((t, idx) => {
+        const isTop = idx < TOP_N;
+        const isOurTeam = ourTeamName && t.team.toLowerCase() === ourTeamName.toLowerCase();
+        let rowClass = "";
+        if (isTop) rowClass += " top-row";
+        if (isOurTeam) rowClass += " our-team-row";
+
+        const tierClassName = tierClass(t.tier);
+        const tierLabelText = tierLabel(t.tier);
+
+        const ourLabel = isOurTeam ? ' <span style="font-size:10px; color:#00c98b;">(Aces)</span>' : "";
+
+        return `
+          <tr class="${rowClass.trim()}">
+            <td>${t.team}${ourLabel}</td>
+            <td>${t.pool}</td>
+            <td>${t.G}</td>
+            <td>${t.W}</td>
+            <td>${t.L}</td>
+            <td>.${formatPct(t.winPct)}</td>
+            <td>${t.RS}</td>
+            <td>${t.RA}</td>
+            <td>${t.rd}</td>
+            <td>${format1(t.rdPerG)}</td>
+            <td>${formatThreat(t.threat)}</td>
+            <td>
+              <span class="tier-pill ${tierClassName}">
+                ${tierLabelText}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      container.innerHTML = `
+        <div style="max-height:430px; overflow:auto; margin-top:8px;">
+          <table>
+            ${headerHtml}
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      statusEl.textContent = `Showing ${filtered.length} teams (min G = ${minG}).`;
+
+      // Attach click handlers for sorting
+      const ths = container.querySelectorAll("th.sortable");
+      ths.forEach(th => {
+        th.addEventListener("click", () => {
+          const key = th.getAttribute("data-key");
+          if (!key) return;
+          if (sortKey === key) {
+            sortDir = (sortDir === "desc") ? "asc" : "desc";
+          } else {
+            sortKey = key;
+            sortDir = defaultDirFor(key);
+          }
+          const sortSelect2 = document.getElementById("sortBy");
+          if (sortSelect2) sortSelect2.value = sortKey === "threat" ? "threat" : sortKey;
+          renderTable();
+        });
+      });
+
+      renderWatchList(filtered);
+    }
+
+    function renderWatchList(list) {
+      const container = document.getElementById("watchListContainer");
+      if (!list || !list.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            Load a tournament CSV to populate the watch list.
+          </div>`;
+        return;
+      }
+
+      const ourTeamName = (document.getElementById("ourTeamName").value || "").trim();
+      const sortedByThreat = sortTeams(list.slice());
+
+      // Top opponents (exclude our own team)
+      const topOpponents = sortedByThreat.filter(t => {
+        if (!ourTeamName) return true;
+        return t.team.toLowerCase() !== ourTeamName.toLowerCase();
+      }).slice(0, TOP_N);
+
+      const tierCounts = {
+        elite: 0,
+        strong: 0,
+        solid: 0,
+        underdog: 0
+      };
+      list.forEach(t => {
+        tierCounts[t.tier] = (tierCounts[t.tier] || 0) + 1;
+      });
+
+      const topListHtml = topOpponents.length
+        ? `
+          <ul>
+            ${topOpponents.map(t => `
+              <li>
+                <div class="watch-team">${t.team}</div>
+                <div class="watch-meta">
+                  Pool ${t.pool || "-"} · Win% .${formatPct(t.winPct)} · RD ${t.rd} (${format1(t.rdPerG)} /g) ·
+                  Threat ${formatThreat(t.threat)} (${tierLabel(t.tier)})
+                </div>
+              </li>
+            `).join("")}
+          </ul>
+        `
+        : `<div class="empty-state">Not enough opponents to rank yet.</div>`;
+
+      const tierHtml = `
+        <div class="tier-legend">
+          <span class="pill-count">
+            Elite: ${tierCounts.elite || 0}
+          </span>
+          <span class="pill-count">
+            Strong: ${tierCounts.strong || 0}
+          </span>
+          <span class="pill-count">
+            Solid: ${tierCounts.solid || 0}
+          </span>
+          <span class="pill-count">
+            Underdog: ${tierCounts.underdog || 0}
+          </span>
+        </div>
+      `;
+
+      container.innerHTML = `
+        <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">
+          Top ${TOP_N} non-Aces teams by Threat Score:
+        </div>
+        ${topListHtml}
+        <hr style="border:none; border-top:1px solid rgba(255,255,255,0.06); margin:12px 0;">
+        <div style="font-size:13px; color:var(--muted);">
+          Tier breakdown:
+        </div>
+        ${tierHtml}
+      `;
+    }
+
+    function parseTournamentCsvText(csvText, opts = {}) {
+      const statusEl = document.getElementById("tournamentStatus");
+      statusEl.textContent = "Parsing tournament CSV...";
+
+      Papa.parse(csvText, {
+        header: false,
+        dynamicTyping: false,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const rows = results.data;
+          if (!rows || rows.length < 2) {
+            alert("Tournament CSV looks too short.");
+            statusEl.textContent = "Failed to parse tournament CSV.";
+            return;
+          }
+
+          teams = computeThreatMetrics(rows);
+          if (!teams.length) {
+            statusEl.textContent = "No valid team rows found in this tournament CSV.";
+            return;
+          }
+
+          statusEl.textContent = `Loaded ${teams.length} teams from tournament CSV.`;
+          renderTable();
+        },
+        error: (err) => {
+          console.error(err);
+          alert("Error parsing tournament CSV: " + err.message);
+          statusEl.textContent = "Error parsing tournament CSV.";
+        }
+      });
+    }
+
+    // --- New: title updater from CSV filename ---
+    const titleEl = document.getElementById("tournament-title");
+    function updateTitleFromFilename(fileName) {
+      if (!titleEl || !fileName) return;
+      let name = fileName;
+
+      // strip "tournament_" prefix and ".csv" suffix
+      name = name.replace(/^tournament_?/i, "");
+      name = name.replace(/\.csv$/i, "");
+
+      // replace underscores with spaces
+      name = name.replace(/_/g, " ").trim();
+
+      // title-case words
+      name = name
+        .split(" ")
+        .filter(Boolean)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+
+      if (!name) {
+        titleEl.textContent = "Tournament Threat Board";
+      } else {
+        titleEl.textContent = `Tournament Threat Board – ${name}`;
+      }
+    }
+
+    // --- Events ---
+    document.getElementById("tournamentCsv").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // update title from selected file name
+      updateTitleFromFilename(file.name);
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target.result;
+        saveTournamentCsv(text);
+        parseTournamentCsvText(text, { fromStorage: false });
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById("sortBy").addEventListener("change", (e) => {
+      const val = e.target.value;
+      if (val === "threat") {
+        sortKey = "threat";
+      } else if (val === "winPct") {
+        sortKey = "winPct";
+      } else if (val === "rdPerG") {
+        sortKey = "rdPerG";
+      } else if (val === "rd") {
+        sortKey = "rd";
+      } else if (val === "RS") {
+        sortKey = "RS";
+      } else if (val === "RA") {
+        sortKey = "RA";
+      } else {
+        sortKey = "threat";
+      }
+      sortDir = defaultDirFor(sortKey);
+      renderTable();
+    });
+
+    document.getElementById("minGames").addEventListener("input", renderTable);
+    document.getElementById("ourTeamName").addEventListener("input", renderTable);
+
+    // ---------- auto-load from SQL-backed API if no cached CSV ----------
+    document.addEventListener("DOMContentLoaded", () => {
+      const statusEl = document.getElementById("tournamentStatus");
+
+      // 1) Use cached CSV first (same behavior as before)
+      const cached = loadTournamentCsv();
+      if (cached) {
+        if (statusEl) {
+          statusEl.textContent =
+            "Loaded cached tournament CSV from this browser. " +
+            "Clear it or upload a new file if you want to refresh.";
+        }
+        parseTournamentCsvText(cached, { fromStorage: true });
+        return;
+      }
+
+      // 2) Otherwise, pull live data from the API (which hits GCStats)
+      if (statusEl) {
+        statusEl.textContent = "Loading tournament data from server...";
+      }
+
+      fetch("/api/tournament.csv")
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("HTTP " + res.status);
+          }
+          return res.text();
+        })
+        .then((text) => {
+          // Cache it so subsequent loads are instant
+          saveTournamentCsv(text);
+          parseTournamentCsvText(text, { fromStorage: false, fromApi: true });
+          if (statusEl) {
+            statusEl.textContent = "Loaded tournament data from server.";
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load tournament CSV from API", err);
+          if (statusEl) {
+            statusEl.textContent =
+              "Failed to load tournament data from server. " +
+              "You can still choose a Tournament CSV file above.";
+          }
+        });
+    });
+  </script>
+</body>
+</html>

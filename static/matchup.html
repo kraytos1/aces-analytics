@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aces Analytics – Matchup View</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --bg-card: #151821;
+      --accent: #ff7a00;
+      --accent-soft: rgba(255, 122, 0, 0.2);
+      --text: #f5f5f5;
+      --muted: #a0a4b8;
+      --danger: #ff4b6a;
+      --success: #00c98b;
+      --border-radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+      background: radial-gradient(circle at top, #20253a 0, #05060a 55%);
+      color: var(--text);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(5, 6, 10, 0.9);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #ffd5a5, #ff7a00);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: #0b0c10;
+      box-shadow: 0 0 18px rgba(255, 122, 0, 0.7);
+    }
+    .nav {
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .nav span {
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .nav span.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    main {
+      padding: 18px 24px 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 4px 0 8px;
+      font-size: 26px;
+    }
+    .subheading {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: rgba(8, 10, 20, 0.95);
+      border-radius: var(--border-radius);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      padding: 16px 16px 18px;
+      margin-bottom: 18px;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .matchup-grid {
+      display: grid;
+      grid-template-columns: 1fr 60px 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .team-panel {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .team-name {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .team-record {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      color: var(--muted);
+    }
+    .stat-val {
+      font-weight: 500;
+    }
+    .vs {
+      text-align: center;
+      font-weight: 700;
+      font-size: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+    .prob-bar-wrapper {
+      margin-top: 8px;
+    }
+    .prob-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .prob-bar {
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .prob-aces {
+      background: var(--accent);
+    }
+    .prob-opp {
+      background: #3b4a8a;
+    }
+    .keys-text {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .status-line {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+    .danger { color: var(--danger); }
+    .good { color: var(--success); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      <div>Aces Analytics</div>
+    </div>
+    <nav class="nav">
+      <span onclick="location.href='team-hitting.html'">Team Hitting</span>
+      <span onclick="location.href='team-pitching.html'">Pitching</span>
+      <span onclick="location.href='player.html'">Players</span>
+      <span onclick="location.href='tournament.html'">Tournaments</span>
+      <span class="active" onclick="location.href='matchup.html'">Matchup</span>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Matchup View</h1>
+    <div class="subheading" id="matchupSubtitle">
+      This page compares <strong>Delmarva Aces</strong> vs an opponent from your cached tournament CSV.
+      Open <em>Tournaments</em>, load a CSV, then click a team name.
+    </div>
+
+    <section class="card" id="matchupCard">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Head-to-Head Snapshot</div>
+          <div class="card-subtitle" id="matchupTitle">Waiting for matchup...</div>
+        </div>
+      </div>
+
+      <div id="matchupContent" class="status-line">
+        No matchup loaded. Make sure you've:
+        <br>1) Loaded a tournament CSV on the Tournaments page, and
+        <br>2) Opened this page via a link like <code>matchup.html?team=Team%20Bombers</code>.
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Keys to the Game</div>
+          <div class="card-subtitle">Simple heuristics based on RS/G, RA/G, and Threat Score</div>
+        </div>
+      </div>
+      <div class="keys-text" id="keysText">
+        Load a matchup to see tailored notes for this opponent.
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TOURNEY_STORAGE_KEY = "acesTournamentCsv";
+
+    function safeNumber(value) {
+      if (value === undefined || value === null || value === "") return 0;
+      const v = (typeof value === "string") ? value.replace(/[^0-9.\-]/g, "") : value;
+      const n = Number(v);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function format2(v) { return v.toFixed(2); }
+
+    function getQueryParam(key) {
+      const params = new URLSearchParams(window.location.search);
+      const val = params.get(key);
+      return val ? decodeURIComponent(val) : null;
+    }
+
+    function loadTournamentCsv() {
+      try {
+        return localStorage.getItem(TOURNEY_STORAGE_KEY);
+      } catch (e) {
+        console.warn("Could not load tournament CSV", e);
+        return null;
+      }
+    }
+
+    function parseTournamentCsvText(csvText) {
+      return new Promise((resolve, reject) => {
+        Papa.parse(csvText, {
+          header: true,
+          dynamicTyping: false,
+          skipEmptyLines: true,
+          complete: (results) => {
+            if (!results.data || !results.data.length) {
+              return reject(new Error("Tournament CSV appears to be empty."));
+            }
+            const header = results.meta.fields || [];
+            if (!header.includes("Team") || !header.includes("G") ||
+                !header.includes("W") || !header.includes("L") ||
+                !header.includes("RS") || !header.includes("RA")) {
+              return reject(new Error("Expected columns: Team, G, W, L, RS, RA"));
+            }
+
+            const raw = results.data.filter(r => r.Team && r.Team.trim() !== "");
+            const teams = raw.map(r => {
+              const team = (r.Team || "").trim();
+              const G = safeNumber(r.G);
+              const W = safeNumber(r.W);
+              const L = safeNumber(r.L);
+              const RS = safeNumber(r.RS);
+              const RA = safeNumber(r.RA);
+
+              const RD = RS - RA;
+              const RSg = G > 0 ? RS / G : 0;
+              const RAg = G > 0 ? RA / G : 0;
+
+              let pyth = 0.5;
+              if (RS > 0 || RA > 0) {
+                const exp = 1.83;
+                const RSx = Math.pow(Math.max(RS, 1), exp);
+                const RAx = Math.pow(Math.max(RA, 1), exp);
+                pyth = RSx / (RSx + RAx);
+              }
+
+              const RDg = G > 0 ? RD / G : 0;
+              let threat = 50 + RDg * 10 + RSg * 2 - RAg * 2;
+              threat = (threat * 0.7) + (pyth * 100 * 0.3);
+              threat = Math.max(0, Math.min(100, threat));
+
+              return { team, G, W, L, RS, RA, RD, RSg, RAg, pyth, threat };
+            });
+
+            resolve(teams);
+          },
+          error: (err) => reject(err)
+        });
+      });
+    }
+
+    function renderMatchup(aces, opp) {
+      const content = document.getElementById("matchupContent");
+      const title = document.getElementById("matchupTitle");
+      const subtitle = document.getElementById("matchupSubtitle");
+
+      title.textContent = `${aces.team} vs ${opp.team}`;
+      subtitle.innerHTML = `Projected matchup based on tournament RS/RA and Threat Score.`;
+
+      const acesWinProb = aces.pyth / (aces.pyth + opp.pyth);
+      const oppWinProb  = 1 - acesWinProb;
+
+      const acesPct = (acesWinProb * 100).toFixed(1);
+      const oppPct  = (oppWinProb * 100).toFixed(1);
+
+      content.innerHTML = `
+        <div class="matchup-grid">
+          <div class="team-panel">
+            <div class="team-name">${aces.team}</div>
+            <div class="team-record">${aces.W}-${aces.L} | RD: ${aces.RD}</div>
+            <div class="stat-row">
+              <span class="stat-label">RS/G</span>
+              <span class="stat-val">${format2(aces.RSg)}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">RA/G</span>
+              <span class="stat-val">${format2(aces.RAg)}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Pyth W%</span>
+              <span class="stat-val">${format2(aces.pyth * 100)}%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Threat</span>
+              <span class="stat-val">${format2(aces.threat)}</span>
+            </div>
+          </div>
+
+          <div class="vs">
+            <div>VS</div>
+            <div class="prob-bar-wrapper">
+              <div class="prob-label">Win probability (rough)</div>
+              <div class="prob-bar">
+                <div class="prob-aces" style="width:${acesPct}%;"></div>
+                <div class="prob-opp" style="width:${oppPct}%;"></div>
+              </div>
+              <div style="font-size:11px; margin-top:2px;">
+                <span class="good">${aces.team}: ${acesPct}%</span> ·
+                <span class="danger">${opp.team}: ${oppPct}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="team-panel">
+            <div class="team-name">${opp.team}</div>
+            <div class="team-record">${opp.W}-${opp.L} | RD: ${opp.RD}</div>
+            <div class="stat-row">
+              <span class="stat-label">RS/G</span>
+              <span class="stat-val">${format2(opp.RSg)}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">RA/G</span>
+              <span class="stat-val">${format2(opp.RAg)}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Pyth W%</span>
+              <span class="stat-val">${format2(opp.pyth * 100)}%</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Threat</span>
+              <span class="stat-val">${format2(opp.threat)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      renderKeys(aces, opp);
+    }
+
+    function renderKeys(aces, opp) {
+      const el = document.getElementById("keysText");
+      if (!aces || !opp) {
+        el.textContent = "Load a matchup to see tailored notes.";
+        return;
+      }
+
+      const notes = [];
+      const RSgDiff = opp.RSg - aces.RAg;
+      const RAgDiff = opp.RAg - aces.RSg;
+
+      if (opp.RSg >= 7 && opp.RSg > aces.RSg) {
+        notes.push(`<span class="danger">They score a ton.</span> Limit free passes and keep the ball down. Don’t let the big inning happen.`);
+      } else if (opp.RSg <= 4) {
+        notes.push(`<span class="good">Their offense is more modest.</span> Attack the zone and trust your defense.`);
+      }
+
+      if (opp.RAg <= 4) {
+        notes.push(`<span class="danger">Their pitching/defense is stingy.</span> Grind ABs, foul off tough pitches, and make them work for outs.`);
+      } else if (opp.RAg >= 6) {
+        notes.push(`<span class="good">They give up runs.</span> Stay aggressive in good counts and look for damage swings with runners on.`);
+      }
+
+      if (opp.threat > aces.threat + 10) {
+        notes.push(`On paper they rate as the tougher club. Focus on defense first: no extra bases on errors or walks.`);
+      } else if (aces.threat > opp.threat + 10) {
+        notes.push(`Numbers say you have the edge. Don’t let up early—jump ahead and keep the pressure on with smart baserunning.`);
+      } else {
+        notes.push(`This projects as a fairly even matchup. Winning the free-base battle (BB/HBP vs your own) will likely decide it.`);
+      }
+
+      el.innerHTML = notes.join("<br><br>");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const csvText = loadTournamentCsv();
+      const matchupContent = document.getElementById("matchupContent");
+
+      if (!csvText) {
+        matchupContent.innerHTML = `
+          No tournament data cached.
+          <br>Go to <strong>Tournaments</strong>, upload a CSV, then click an opponent team name to open this page.
+        `;
+        return;
+      }
+
+      const teamParam = getQueryParam("team");
+      if (!teamParam) {
+        matchupContent.innerHTML = `
+          No team specified.
+          <br>Open this page via a link like <code>matchup.html?team=Team%20Bombers</code>
+          or by clicking a team name from the Tournaments page.
+        `;
+        return;
+      }
+
+      try {
+        const teams = await parseTournamentCsvText(csvText);
+
+        const aces = teams.find(t => t.team.toLowerCase().includes("aces"));
+        const opp  = teams.find(t => t.team.toLowerCase() === teamParam.toLowerCase())
+                  || teams.find(t => t.team.toLowerCase().includes(teamParam.toLowerCase()));
+
+        if (!aces) {
+          matchupContent.innerHTML = `Could not find a team containing "aces" in the tournament CSV.`;
+          return;
+        }
+        if (!opp) {
+          matchupContent.innerHTML = `Could not find opponent "${teamParam}" in the tournament CSV.`;
+          return;
+        }
+
+        renderMatchup(aces, opp);
+      } catch (err) {
+        console.error(err);
+        matchupContent.textContent = "Error parsing cached tournament CSV: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

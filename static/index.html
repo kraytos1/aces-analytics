@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aces Analytics – Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --accent: #ff7a00;
+      --accent-soft: rgba(255, 122, 0, 0.2);
+      --text: #f5f5f5;
+      --muted: #a0a4b8;
+      --border-radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+      background: radial-gradient(circle at top, #20253a 0, #05060a 55%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(5, 6, 10, 0.9);
+      backdrop-filter: blur(12px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #ffd5a5, #ff7a00);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 16px;
+      color: #0b0c10;
+      box-shadow: 0 0 18px rgba(255, 122, 0, 0.7);
+    }
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 28px;
+    }
+    .subheading {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      background: rgba(0,0,0,0.3);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+    }
+    .status-dot.on { background: #00c98b; }
+    .status-dot.off { background: #ff4b6a; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      position: relative;
+      background: rgba(8, 10, 20, 0.96);
+      border-radius: var(--border-radius);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+      padding: 16px 16px 18px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, border-color 0.12s ease-out;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 38px rgba(0,0,0,0.8);
+      border-color: rgba(255, 122, 0, 0.6);
+    }
+    .card-type {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11px;
+    }
+    .chip {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+    }
+    .chip.hot {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .arrow {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      font-size: 16px;
+      color: var(--accent);
+      opacity: 0.8;
+    }
+    footer {
+      padding: 10px 24px 16px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+    }
+    a.card-link {
+      text-decoration: none;
+      color: inherit;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-mark">A</div>
+      <div>Aces Analytics</div>
+    </div>
+  </header>
+
+  <main>
+    <h1>Delmarva Aces – Analytics Hub</h1>
+    <div class="subheading">
+      Start here on game day: load your <strong>GameChanger Season Stats CSV</strong> once, then bounce between
+      hitting, pitching, players, and tournament scouting.
+    </div>
+
+    <div id="seasonStatus" class="status-pill">
+      <span class="status-dot off"></span>
+      <span>Season stats: not loaded yet in this browser</span>
+    </div>
+
+    <div class="grid">
+      <!-- Team Hitting -->
+      <a href="team-hitting.html" class="card-link">
+        <div class="card">
+          <div class="card-type">Season</div>
+          <div class="card-title">Team Hitting Dashboard</div>
+          <div class="card-desc">
+            Leaderboard sorted by OPS, with team AVG / OBP / SLG / OPS and links into individual player cards.
+          </div>
+          <div class="chip-row">
+            <span class="chip hot">OPS leaderboard</span>
+            <span class="chip">Team hitting profile</span>
+            <span class="chip">Deep link to players</span>
+          </div>
+          <div class="arrow">↳</div>
+        </div>
+      </a>
+
+      <!-- Team Pitching -->
+      <a href="team-pitching.html" class="card-link">
+        <div class="card">
+          <div class="card-type">Season</div>
+          <div class="card-title">Team Pitching Dashboard</div>
+          <div class="card-desc">
+            Staff overview sorted by IP, with ERA, WHIP, K/9, BB/9 and quick navigation into player reports.
+          </div>
+          <div class="chip-row">
+            <span class="chip hot">Staff ERA & WHIP</span>
+            <span class="chip">Workload (IP / GS)</span>
+            <span class="chip">Strikeout & walk rates</span>
+          </div>
+          <div class="arrow">↳</div>
+        </div>
+      </a>
+
+      <!-- Player Explorer -->
+      <a href="player.html" class="card-link">
+        <div class="card">
+          <div class="card-type">Season</div>
+          <div class="card-title">Player Reports</div>
+          <div class="card-desc">
+            Individual player cards with hitting and pitching summaries, tags, and print-friendly scouting sheets.
+          </div>
+          <div class="chip-row">
+            <span class="chip hot">Print-ready cards</span>
+            <span class="chip">OPS / ISO / SB threat</span>
+            <span class="chip">Pitching overview</span>
+          </div>
+          <div class="arrow">↳</div>
+        </div>
+      </a>
+
+      <!-- Tournament / Matchups -->
+      <a href="tournament.html" class="card-link">
+        <div class="card">
+          <div class="card-type">Tournament</div>
+          <div class="card-title">Threat Board & Matchups</div>
+          <div class="card-desc">
+            Upload a bracket / pool CSV to see strongest opponents, then drill into specific matchups vs Aces.
+          </div>
+          <div class="chip-row">
+            <span class="chip hot">Opponent threat scores</span>
+            <span class="chip">Aces vs Opponent cards</span>
+            <span class="chip">Game plan notes</span>
+          </div>
+          <div class="arrow">↳</div>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    Season stats are cached per browser using localStorage as <code>acesSeasonStatsCsv</code>.
+    Load once on this device, reuse across all dashboards.
+  </footer>
+
+  <script>
+    (function updateSeasonStatus() {
+      const key = "acesSeasonStatsCsv";
+      let hasCsv = false;
+      try {
+        hasCsv = !!localStorage.getItem(key);
+      } catch (e) {
+        hasCsv = false;
+      }
+      const el = document.getElementById("seasonStatus");
+      const dot = el.querySelector(".status-dot");
+      const text = el.querySelector("span:nth-child(2)");
+
+      if (hasCsv) {
+        dot.classList.remove("off");
+        dot.classList.add("on");
+        text.textContent = "Season stats: loaded in this browser (shared across Hitting, Pitching, and Players)";
+      } else {
+        dot.classList.remove("on");
+        dot.classList.add("off");
+        text.textContent = "Season stats: not loaded yet in this browser – start with Team Hitting";
+      }
+    })();
+  </script>
+</body>
+</html>

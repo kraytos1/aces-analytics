@@ -1,0 +1,17 @@
+2025/11/27-10:50:37.957 5b44 Reusing MANIFEST C:\GC_Scraper\chrome-user-data\Default\Local Storage\leveldb/MANIFEST-000001
+2025/11/27-10:50:37.960 5b44 Recovering log #775
+2025/11/27-10:50:37.961 5b44 Level-0 table #778: started
+2025/11/27-10:50:37.964 5b44 Level-0 table #778: 50935 bytes OK
+2025/11/27-10:50:37.967 5b44 Delete type=0 #775
+2025/11/27-10:50:37.968 4928 Compacting 4@0 + 1@1 files
+2025/11/27-10:50:37.972 4928 Generated table #780@0: 43 keys, 55214 bytes
+2025/11/27-10:50:37.972 4928 Compacted 4@0 + 1@1 files => 55214 bytes
+2025/11/27-10:50:37.973 4928 compacted to: files[ 0 1 1 0 0 0 0 ]
+2025/11/27-10:50:37.974 4928 Delete type=2 #768
+2025/11/27-10:50:37.974 4928 Delete type=2 #771
+2025/11/27-10:50:37.974 4928 Delete type=2 #773
+2025/11/27-10:50:37.974 4928 Delete type=2 #776
+2025/11/27-10:50:37.974 4928 Delete type=2 #778
+2025/11/27-10:51:37.972 4928 Level-0 table #782: started
+2025/11/27-10:51:37.975 4928 Level-0 table #782: 50950 bytes OK
+2025/11/27-10:51:37.976 4928 Delete type=0 #779
