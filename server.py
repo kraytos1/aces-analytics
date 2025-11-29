@@ -1,5 +1,6 @@
 import os
 from functools import wraps
+from datetime import datetime, timezone
 
 from flask import (
     Flask,
@@ -26,18 +27,15 @@ app = Flask(
 
 # ----- Simple HTTP Basic Auth -----
 
-# In production, override these with environment variables
 BASIC_AUTH_USER = os.environ.get("ACES_USER", "coach")
 BASIC_AUTH_PASS = os.environ.get("ACES_PASS", "changeme")
 
 
 def check_auth(username: str, password: str) -> bool:
-    """Check if a username/password combination is valid."""
     return username == BASIC_AUTH_USER and password == BASIC_AUTH_PASS
 
 
 def authenticate() -> Response:
-    """Send a 401 response to trigger browser basic auth dialog."""
     return Response(
         "Authentication required.",
         401,
@@ -46,7 +44,6 @@ def authenticate() -> Response:
 
 
 def requires_auth(f):
-    """Decorator to require basic auth on a route."""
     @wraps(f)
     def decorated(*args, **kwargs):
         auth = request.authorization
@@ -56,26 +53,26 @@ def requires_auth(f):
     return decorated
 
 
-# ----- Hitting helpers & API -----
+# ----- Helpers -----
 
-def _list_hitting_seasons():
+def _list_seasons_in_dir(dir_path: str, prefix: str):
     """
-    Scan data/hitting for CSVs and return:
+    Generic helper to scan a directory for CSVs and return:
       [{"id": "fall2024", "label": "Fall 2024"}, ...]
+    prefix: "hitting_" or "pitching_" etc.
     """
-    if not os.path.isdir(HITTING_DIR):
+    if not os.path.isdir(dir_path):
         return []
 
     seasons = []
-    for fname in os.listdir(HITTING_DIR):
+    for fname in os.listdir(dir_path):
         if not fname.lower().endswith(".csv"):
             continue
 
         name_no_ext = fname[:-4]  # strip ".csv"
 
-        # Support "hitting_fall2024.csv" and "fall2024.csv"
-        if name_no_ext.startswith("hitting_"):
-            season_id = name_no_ext[len("hitting_"):]
+        if prefix and name_no_ext.startswith(prefix):
+            season_id = name_no_ext[len(prefix):]
         else:
             season_id = name_no_ext
 
@@ -88,36 +85,60 @@ def _list_hitting_seasons():
     return seasons
 
 
+def _list_hitting_seasons():
+    return _list_seasons_in_dir(HITTING_DIR, "hitting_")
+
+
+def _list_pitching_seasons():
+    return _list_seasons_in_dir(PITCHING_DIR, "pitching_")
+
+
+def _get_last_updated_for_dir(dir_path: str):
+    """
+    Return ISO 8601 UTC timestamp for the newest CSV in dir_path,
+    or None if there are no CSVs.
+    """
+    if not os.path.isdir(dir_path):
+        return None
+
+    latest_mtime = None
+    for fname in os.listdir(dir_path):
+        if not fname.lower().endswith(".csv"):
+            continue
+        full_path = os.path.join(dir_path, fname)
+        try:
+            mtime = os.path.getmtime(full_path)
+        except OSError:
+            continue
+        if latest_mtime is None or mtime > latest_mtime:
+            latest_mtime = mtime
+
+    if latest_mtime is None:
+        return None
+
+    dt = datetime.fromtimestamp(latest_mtime, tz=timezone.utc)
+    return dt.isoformat()  # e.g. "2025-11-29T03:12:34.567890+00:00"
+
+
+# ----- Routes -----
+
 @app.route("/")
 @requires_auth
 def index():
-    """Default page – Team Hitting dashboard."""
     return send_from_directory(STATIC_DIR, "team-hitting.html")
 
+
+# --- Hitting ---
 
 @app.get("/api/hitting/seasons")
 @requires_auth
 def hitting_seasons():
-    """
-    Return JSON array of hitting seasons.
-    Example:
-      [
-        {"id": "fall2024", "label": "Fall 2024"},
-        {"id": "spring2025", "label": "Spring 2025"}
-      ]
-    """
     return jsonify(_list_hitting_seasons())
 
 
 @app.get("/api/hitting/csv/<season_id>")
 @requires_auth
 def hitting_csv(season_id):
-    """
-    Returns the raw hitting CSV for a given season.
-    Tries:
-      data/hitting/hitting_<season_id>.csv
-      data/hitting/<season_id>.csv
-    """
     candidates = [
         f"hitting_{season_id}.csv",
         f"{season_id}.csv",
@@ -135,56 +156,24 @@ def hitting_csv(season_id):
     abort(404, description=f"No hitting CSV found for season '{season_id}'")
 
 
-# ----- Pitching helpers & API -----
+@app.get("/api/hitting/last-updated")
+@requires_auth
+def hitting_last_updated():
+    ts = _get_last_updated_for_dir(HITTING_DIR)
+    return jsonify({"last_updated": ts})
 
-def _list_pitching_seasons():
-    """
-    Scan data/pitching for CSVs and return:
-      [{"id": "fall2024", "label": "Fall 2024"}, ...]
-    """
-    if not os.path.isdir(PITCHING_DIR):
-        return []
 
-    seasons = []
-    for fname in os.listdir(PITCHING_DIR):
-        if not fname.lower().endswith(".csv"):
-            continue
-
-        name_no_ext = fname[:-4]  # strip ".csv"
-
-        # Support "pitching_fall2024.csv" and "fall2024.csv"
-        if name_no_ext.startswith("pitching_"):
-            season_id = name_no_ext[len("pitching_"):]
-        else:
-            season_id = name_no_ext
-
-        label = season_id.replace("-", " ").replace("_", " ")
-        label = " ".join(w.capitalize() for w in label.split())
-
-        seasons.append({"id": season_id, "label": label})
-
-    seasons.sort(key=lambda s: s["label"])
-    return seasons
-
+# --- Pitching ---
 
 @app.get("/api/pitching/seasons")
 @requires_auth
 def pitching_seasons():
-    """
-    Return JSON array of pitching seasons.
-    """
     return jsonify(_list_pitching_seasons())
 
 
 @app.get("/api/pitching/csv/<season_id>")
 @requires_auth
 def pitching_csv(season_id):
-    """
-    Returns the raw pitching CSV for a given season.
-    Tries:
-      data/pitching/pitching_<season_id>.csv
-      data/pitching/<season_id>.csv
-    """
     candidates = [
         f"pitching_{season_id}.csv",
         f"{season_id}.csv",
@@ -202,16 +191,18 @@ def pitching_csv(season_id):
     abort(404, description=f"No pitching CSV found for season '{season_id}'")
 
 
-# ----- Tournament API -----
+@app.get("/api/pitching/last-updated")
+@requires_auth
+def pitching_last_updated():
+    ts = _get_last_updated_for_dir(PITCHING_DIR)
+    return jsonify({"last_updated": ts})
+
+
+# --- Tournament ---
 
 @app.get("/api/tournament.csv")
 @requires_auth
 def tournament_csv():
-    """
-    Serve the default tournament CSV for the tournament threat board.
-    Expects:
-      data/tournament/tournament_teams.csv
-    """
     if not os.path.isdir(TOURNAMENT_DIR):
         abort(404, description="Tournament directory not found")
 
@@ -227,18 +218,20 @@ def tournament_csv():
     )
 
 
-# ----- Protected static files (HTML / JS / CSS) -----
+@app.get("/api/tournament/last-updated")
+@requires_auth
+def tournament_last_updated():
+    ts = _get_last_updated_for_dir(TOURNAMENT_DIR)
+    return jsonify({"last_updated": ts})
+
+
+# --- Protected static files (HTML / JS / CSS) ---
 
 @app.route("/<path:filename>")
 @requires_auth
 def static_files(filename):
-    """
-    Catch-all route for static assets (HTML, JS, CSS, images, etc.)
-    so they are also protected by basic auth.
-    """
     return send_from_directory(STATIC_DIR, filename)
 
 
 if __name__ == "__main__":
-    # Local dev: http://localhost:8000
     app.run(host="0.0.0.0", port=8000, debug=True)
