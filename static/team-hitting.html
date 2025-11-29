@@ -862,9 +862,42 @@
         return a.toFixed(3).replace(/^0+/, "");
       }
 
-      function safeGet(row, key) {
-        return row[key] ?? row[key.toLowerCase()] ?? "";
+            function normalizeKeyName(k) {
+        return String(k || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
       }
+
+      function safeGet(row, key) {
+        if (!row) return "";
+
+        // 1) direct match
+        if (key in row && row[key] != null && row[key] !== "") {
+          return row[key];
+        }
+
+        // 2) direct lowercase key
+        const lowerKey = key.toLowerCase();
+        if (
+          lowerKey in row &&
+          row[lowerKey] != null &&
+          row[lowerKey] !== ""
+        ) {
+          return row[lowerKey];
+        }
+
+        // 3) normalized match: "PlayerName" vs "Player Name" vs "player_name"
+        const targetNorm = normalizeKeyName(key);
+        for (const k of Object.keys(row)) {
+          if (normalizeKeyName(k) === targetNorm) {
+            const val = row[k];
+            if (val != null && val !== "") return val;
+          }
+        }
+
+        return "";
+      }
+
 
       // --- Local storage fallback ---
 
@@ -991,49 +1024,71 @@
         el.innerHTML = msg || "";
       }
 
+      function getNum(row, keys) {
+        // Try multiple possible header names for the same stat
+        for (const key of keys) {
+          const val = safeGet(row, key);
+          if (val !== "" && val != null) {
+            return toNumber(val);
+          }
+        }
+        return 0;
+      }
+
       function combineRowsAcrossSeasons(rows) {
         const byKey = new Map();
 
         for (const row of rows) {
-          const rawName = safeGet(row, "PlayerName") || safeGet(row, "Player");
-          const uniform = (safeGet(row, "Uniform") || "").trim();
-          const nameKey = (rawName || "").trim().toLowerCase();
+          // Be flexible about how the name column is labeled
+          const rawName =
+            safeGet(row, "PlayerName") ||
+            safeGet(row, "Player") ||
+            safeGet(row, "Name") ||
+            safeGet(row, "PlayerKey");
 
+          // Same for uniform / jersey #
+          const uniform =
+            (safeGet(row, "Uniform") ||
+              safeGet(row, "Jersey") ||
+              safeGet(row, "JerseyNumber") ||
+              safeGet(row, "Number") ||
+              "").trim();
+
+          const nameKey = (rawName || "").trim().toLowerCase();
           if (!nameKey) continue;
 
           const key = nameKey;
-
-          const existing = byKey.get(key) || {
-            PlayerName: rawName,
-            Uniforms: new Set(),
-            PA: 0,
-            AB: 0,
-            H: 0,
-            Doubles: 0,
-            Triples: 0,
-            HomeRuns: 0,
-            RBI: 0,
-            R: 0,
-            BB: 0,
-            SO: 0,
-            SB: 0,
-            TB: 0,
-          };
+          const existing =
+            byKey.get(key) || {
+              PlayerName: rawName,
+              Uniforms: new Set(),
+              PA: 0,
+              AB: 0,
+              H: 0,
+              Doubles: 0,
+              Triples: 0,
+              HomeRuns: 0,
+              RBI: 0,
+              R: 0,
+              BB: 0,
+              SO: 0,
+              SB: 0,
+            };
 
           if (uniform) existing.Uniforms.add(uniform);
 
-          existing.PA += toNumber(safeGet(row, "PA"));
-          existing.AB += toNumber(safeGet(row, "AB"));
-          existing.H += toNumber(safeGet(row, "H"));
-          existing.Doubles += toNumber(safeGet(row, "Doubles"));
-          existing.Triples += toNumber(safeGet(row, "Triples"));
-          existing.HomeRuns += toNumber(safeGet(row, "HomeRuns"));
-          existing.RBI += toNumber(safeGet(row, "RBI"));
-          existing.R += toNumber(safeGet(row, "R"));
-          existing.BB += toNumber(safeGet(row, "BB"));
-          existing.SO += toNumber(safeGet(row, "SO"));
-          existing.SB += toNumber(safeGet(row, "SB"));
-          existing.TB += toNumber(safeGet(row, "TB"));
+          // Use flexible header mappings for each stat
+          existing.PA += getNum(row, ["PA", "PlateAppearances"]);
+          existing.AB += getNum(row, ["AB"]);
+          existing.H += getNum(row, ["H", "Hits"]);
+          existing.Doubles += getNum(row, ["Doubles", "2B"]);
+          existing.Triples += getNum(row, ["Triples", "3B"]);
+          existing.HomeRuns += getNum(row, ["HomeRuns", "HR"]);
+          existing.RBI += getNum(row, ["RBI"]);
+          existing.R += getNum(row, ["R", "Runs"]);
+          existing.BB += getNum(row, ["BB", "BaseOnBalls", "Walks"]);
+          existing.SO += getNum(row, ["SO", "K", "Strikeouts"]);
+          existing.SB += getNum(row, ["SB", "StolenBases"]);
 
           byKey.set(key, existing);
         }
@@ -1042,7 +1097,11 @@
         for (const [, agg] of byKey) {
           const pa = agg.PA || agg.AB + agg.BB;
           const ab = agg.AB;
-          const singles = Math.max(0, agg.H - agg.Doubles - agg.Triples - agg.HomeRuns);
+
+          const singles = Math.max(
+            0,
+            agg.H - agg.Doubles - agg.Triples - agg.HomeRuns
+          );
           const tb =
             singles +
             2 * agg.Doubles +
@@ -1078,6 +1137,7 @@
 
         return out;
       }
+
 
       function renderTable(rows) {
         const tbody = document.getElementById("hittingTbody");
