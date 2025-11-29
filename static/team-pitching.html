@@ -1,879 +1,1010 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Aces Analytics – Team Pitching</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aces Analytics – Team Pitching</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #050814;
+        --bg-alt: #0b1020;
+        --bg-card: #13192b;
+        --accent: #22c55e;
+        --accent-soft: rgba(34, 197, 94, 0.15);
+        --accent-strong: rgba(34, 197, 94, 0.32);
+        --accent-border: rgba(34, 197, 94, 0.5);
+        --accent-text: #bbf7d0;
+        --text: #f8fafc;
+        --muted: #8b9bbf;
+        --border-subtle: rgba(148, 163, 184, 0.18);
+        --border-strong: rgba(148, 163, 184, 0.28);
+        --positive: #2dd4bf;
+        --negative: #f97373;
+        --warning: #facc15;
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.85);
+        --shadow-subtle: 0 14px 35px rgba(15, 23, 42, 0.65);
+      }
 
-  <style>
-    :root {
-      --bg: #0b0c10;
-      --bg-card: #151821;
-      --accent: #ff7a00;
-      --accent-soft: rgba(255, 122, 0, 0.2);
-      --text: #f5f5f5;
-      --muted: #a0a4b8;
-      --danger: #ff4b6a;
-      --success: #00c98b;
-      --border-radius: 14px;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-      background: radial-gradient(circle at top, #20253a 0, #05060a 55%);
-      color: var(--text);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      background: rgba(5, 6, 10, 0.9);
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 14px;
-    }
-    .logo-mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, #ffd5a5, #ff7a00);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 16px;
-      color: #0b0c10;
-      box-shadow: 0 0 18px rgba(255, 122, 0, 0.7);
-    }
-    .nav {
-      display: flex;
-      gap: 12px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .nav span {
-      padding: 6px 10px;
-      border-radius: 999px;
-      cursor: pointer;
-    }
-    .nav span.active {
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 600;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    main {
-      padding: 18px 24px 32px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    h1 {
-      margin: 4px 0 8px;
-      font-size: 26px;
-    }
-    .subheading {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 10px;
-    }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top left, #1e293b 0, #020617 42%);
+        color: var(--text);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
+      }
 
-    .card {
-      background: rgba(8, 10, 20, 0.95);
-      border-radius: var(--border-radius);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      padding: 16px 16px 18px;
-      margin-bottom: 16px;
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .card-title {
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .card-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .status-line {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
+      main {
+        max-width: 1200px;
+        margin: 24px auto 48px;
+        padding: 0 16px 16px;
+      }
 
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-    .file-input {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px dashed rgba(255, 255, 255, 0.2);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .file-input input { display: none; }
+      .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
 
-    .layout-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-      gap: 18px;
-    }
-    @media (max-width: 900px) {
+      .page-title-block {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.9rem;
+        letter-spacing: 0.03em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .pill span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 16px;
+        min-height: 16px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #020617;
+        font-size: 0.65rem;
+        font-weight: 700;
+      }
+
+      .subheading {
+        font-size: 0.9rem;
+        color: var(--muted);
+        max-width: 640px;
+      }
+
+      .subheading strong {
+        color: var(--accent-text);
+        font-weight: 600;
+      }
+
+      .status-line {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .status-line strong {
+        color: var(--accent-text);
+      }
+
       .layout-grid {
-        grid-template-columns: minmax(0, 1fr);
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+        gap: 18px;
+        align-items: flex-start;
       }
-    }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 6px;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    thead { background: rgba(255, 255, 255, 0.04); }
-    th, td {
-      padding: 6px 8px;
-      text-align: right;
-      white-space: nowrap;
-    }
-    th:first-child, td:first-child { text-align: left; }
-    tbody tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.02);
-    }
-    tbody tr:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    .player-name-cell a {
-      color: inherit;
-      text-decoration: none;
-    }
-    .player-name-cell a:hover {
-      text-decoration: underline;
-    }
+      @media (max-width: 980px) {
+        .layout-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
 
-    .empty-state {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 10px;
-    }
+      .card {
+        background: radial-gradient(
+            circle at top left,
+            rgba(34, 197, 94, 0.1),
+            transparent 54%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(59, 130, 246, 0.06),
+            transparent 58%
+          ),
+          var(--bg-card);
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--shadow-soft);
+        padding: 14px 16px 14px;
+      }
 
-    /* Mini controls for filters & sorting */
-    .mini-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 6px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-    .mini-controls label {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .mini-select,
-    .mini-input {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(10, 11, 20, 0.9);
-      color: var(--text);
-      font-size: 11px;
-      padding: 4px 8px;
-    }
-    .mini-input {
-      width: 60px;
-    }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
 
-    /* Top X highlight */
-    .top-row {
-      background: rgba(0, 201, 139, 0.18) !important;
-      box-shadow: inset 0 0 0 1px rgba(0, 201, 139, 0.45);
-    }
-    .top-badge {
-      font-size: 10px;
-      padding: 2px 5px;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.35);
-      margin-left: 4px;
-      color: var(--success);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+      .card-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
 
-    th.sortable {
-      cursor: pointer;
-      user-select: none;
-    }
-    th.sortable:hover {
-      background: rgba(255,255,255,0.04);
-    }
-    .sort-arrow {
-      font-size: 9px;
-      opacity: 0.8;
-      margin-left: 3px;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="logo">
-      <div class="logo-mark">A</div>
-      <div>Aces Analytics</div>
-    </div>
-    <nav class="nav">
-      <span onclick="location.href='team-hitting.html'">Team Hitting</span>
-      <span class="active" onclick="location.href='team-pitching.html'">Pitching</span>
-      <span onclick="location.href='player.html'">Players</span>
-      <span onclick="location.href='tournament.html'">Tournaments</span>
-    </nav>
-  </header>
+      .card-header .eyebrow {
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
 
-  <main>
-    <h1>Team Pitching Dashboard</h1>
-    <div class="subheading">
-      Multi-season view of your pitching staff. Select one or more seasons from the server,
-      or upload a GC Season Stats CSV manually. Top 3 in the current sort are highlighted.
-    </div>
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
 
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Season Pitching Source</div>
-          <div class="card-subtitle">Server seasons + manual CSV (shared with Hitting / Player)</div>
+      .chip {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        background: rgba(15, 23, 42, 0.9);
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .chip strong {
+        color: var(--accent-text);
+        font-weight: 600;
+      }
+
+      .chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      label {
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      select,
+      input[type="file"],
+      button,
+      .btn {
+        font-family: var(--font-sans);
+      }
+
+      select {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 0.8rem;
+        color: var(--text);
+        min-width: 150px;
+      }
+
+      select[multiple] {
+        min-height: 80px;
+        border-radius: 10px;
+      }
+
+      .btn {
+        border-radius: 999px;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        border: 1px solid var(--accent-border);
+        background: linear-gradient(135deg, var(--accent-strong), #22c55e);
+        color: #0b1020;
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 10px 25px rgba(34, 197, 94, 0.45);
+        white-space: nowrap;
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--accent-text);
+        border-color: rgba(148, 163, 184, 0.7);
+        box-shadow: none;
+      }
+
+      .file-input-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .file-input-row input[type="file"] {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .table-container {
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(15, 23, 42, 0.95);
+        overflow: hidden;
+        box-shadow: var(--shadow-subtle);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+      }
+
+      thead {
+        background: radial-gradient(
+            circle at top left,
+            rgba(56, 189, 248, 0.16),
+            transparent 60%
+          ),
+          rgba(15, 23, 42, 0.96);
+      }
+
+      th,
+      td {
+        padding: 6px 8px;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      th {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(148, 163, 184, 0.9);
+        border-bottom: 1px solid var(--border-subtle);
+        cursor: pointer;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      th.sort-asc::after,
+      th.sort-desc::after {
+        content: "";
+        display: inline-block;
+        margin-left: 4px;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+      }
+
+      th.sort-asc::after {
+        border-bottom: 6px solid var(--accent);
+      }
+
+      th.sort-desc::after {
+        border-top: 6px solid var(--accent);
+      }
+
+      tbody tr:nth-child(odd) {
+        background: rgba(15, 23, 42, 0.92);
+      }
+
+      tbody tr:nth-child(even) {
+        background: rgba(15, 23, 42, 0.86);
+      }
+
+      tbody tr.highlight-row {
+        background: linear-gradient(
+          90deg,
+          rgba(34, 197, 94, 0.2),
+          rgba(15, 23, 42, 0.9)
+        );
+      }
+
+      tbody tr.highlight-row td:first-child {
+        border-left: 3px solid var(--accent);
+      }
+
+      .name-cell {
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .name-cell small {
+        display: block;
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      .stat-good {
+        color: var(--positive);
+        font-weight: 500;
+      }
+
+      .stat-bad {
+        color: var(--negative);
+        font-weight: 500;
+      }
+
+      .stat-neutral {
+        color: var(--muted);
+      }
+
+      .table-wrapper {
+        max-height: 540px;
+        overflow: auto;
+      }
+
+      .small-text {
+        font-size: 0.74rem;
+        color: var(--muted);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(148, 163, 184, 0.9);
+      }
+
+      .tag span {
+        color: var(--accent-text);
+      }
+
+      @media (max-width: 640px) {
+        .page-header {
+          gap: 8px;
+        }
+        .page-title-block h1 {
+          font-size: 1.5rem;
+        }
+        .card {
+          padding: 12px 12px 14px;
+        }
+        th,
+        td {
+          padding: 5px 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="page-header">
+        <div class="page-title-block">
+          <h1>
+            Team Pitching
+            <span class="pill"><span>AA</span> Aces Analytics</span>
+          </h1>
+          <div class="subheading">
+            Uses <strong>combined pitching stats</strong> across selected seasons,
+            and recomputes ERA, WHIP, K/9, and BB/9 from the totals.
+          </div>
+          <div id="lastUpdated" class="status-line"></div>
         </div>
-      </div>
-      <div class="controls">
-        <label style="font-size: 12px; color: var(--muted);">
-          Seasons (from server)
-        </label>
-        <select id="seasonSelectPitch" class="mini-select" multiple size="3" style="min-width: 160px;"></select>
-        <button type="button" id="applySeasonsPitch" class="mini-select" style="cursor:pointer;">
-          Apply Seasons
-        </button>
-        <span style="font-size: 11px; color: var(--muted);">or</span>
-        <label class="file-input">
-          <span>📄 Choose GC Season Stats CSV</span>
-          <input type="file" id="csvFile" accept=".csv" />
-        </label>
-      </div>
-      <div class="status-line" id="loadStatus">
-        Select one or more seasons and click Apply, or upload a Season Stats CSV.
-      </div>
-    </section>
+        <div class="tag">Internal · Staff View</div>
+      </header>
 
-    <div class="layout-grid">
-      <section class="card">
+      <section class="layout-grid">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <div class="eyebrow">Input · Seasons &amp; CSV</div>
+              <h2>Data Sources</h2>
+            </div>
+          </div>
+
+          <div class="chip-row">
+            <div class="chip">
+              <span class="dot"></span>
+              <span>Primary: GC Season Pitching Stats CSV</span>
+            </div>
+            <div class="chip">
+              <span class="dot"></span>
+              <span>Multi-season merge across the same pitchers</span>
+            </div>
+            <div class="chip">
+              <span class="dot"></span>
+              <span>Fallback: Manual CSV upload + localStorage</span>
+            </div>
+          </div>
+
+          <div class="controls-row">
+            <div class="control-group">
+              <label for="seasonSelect">Seasons (multi-select)</label>
+              <select id="seasonSelect" multiple size="4"></select>
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="applySeasonsBtn" class="btn">
+                Apply Seasons
+              </button>
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="clearSeasonsBtn" class="btn btn-secondary">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div class="file-input-row">
+            <div class="control-group">
+              <label for="csvFileInput">Manual CSV Upload (Fallback)</label>
+              <input
+                type="file"
+                id="csvFileInput"
+                accept=".csv,text/csv"
+                aria-label="Upload GameChanger Season Pitching Stats CSV"
+              />
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="clearStorageBtn" class="btn btn-secondary">
+                Clear Saved CSV
+              </button>
+            </div>
+          </div>
+
+          <div id="loadStatus" class="status-line"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <div class="eyebrow">Summary</div>
+              <h2>Staff Overview</h2>
+            </div>
+          </div>
+          <div class="small-text">
+            Metrics are recomputed from combined totals of all selected seasons:
+            <ul>
+              <li>ERA = (ER * 9) / IP</li>
+              <li>WHIP = (BB + H) / IP</li>
+              <li>K/9 = (K * 9) / IP</li>
+              <li>BB/9 = (BB * 9) / IP</li>
+            </ul>
+          </div>
+        </section>
+      </section>
+
+      <section class="card" style="margin-top: 16px">
         <div class="card-header">
           <div>
-            <div class="card-title">Pitching Staff</div>
-            <div class="card-subtitle">Filter by IP and click any stat to sort</div>
+            <div class="eyebrow">Output · Staff Leaderboard</div>
+            <h2>Pitching Leaderboard</h2>
           </div>
         </div>
 
-        <div class="mini-controls">
-          <label>
-            Sort by
-            <select id="sortByPitch" class="mini-select">
-              <option value="IP">IP (high → low)</option>
-              <option value="ERA">ERA (low → high)</option>
-              <option value="WHIP">WHIP (low → high)</option>
-              <option value="Kper9">K/9</option>
-              <option value="BBper9">BB/9 (low → high)</option>
-              <option value="KBB">K/BB</option>
-            </select>
-          </label>
-          <label>
-            Min IP
-            <input type="number" id="minIP" class="mini-input" value="1" min="0" step="0.1" />
-          </label>
-        </div>
-
-        <div id="tableContainer">
-          <div class="empty-state">
-            Load at least one season from the server or upload a Season Stats CSV to see pitchers.
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table id="pitchingTable">
+              <thead>
+                <tr>
+                  <th data-key="PlayerName">Pitcher</th>
+                  <th data-key="Uniform">#</th>
+                  <th data-key="IP">IP</th>
+                  <th data-key="ER">ER</th>
+                  <th data-key="H">H</th>
+                  <th data-key="BB">BB</th>
+                  <th data-key="SO">K</th>
+                  <th data-key="ERA">ERA</th>
+                  <th data-key="WHIP">WHIP</th>
+                  <th data-key="Kper9">K/9</th>
+                  <th data-key="BBper9">BB/9</th>
+                </tr>
+              </thead>
+              <tbody id="pitchingTbody"></tbody>
+            </table>
           </div>
         </div>
       </section>
+    </main>
 
-      <section class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Team Run Prevention</div>
-            <div class="card-subtitle">ERA & WHIP across all pitchers in selected seasons</div>
-          </div>
-        </div>
-        <div style="height:260px;">
-          <canvas id="teamPitchingChart"></canvas>
-        </div>
-        <div class="status-line" id="chartStatus">
-          Chart will appear once pitching stats are available.
-        </div>
-      </section>
-    </div>
-  </main>
+    <script>
+      const STORAGE_KEY = "aces_pitching_csv_v1";
 
-  <script>
-    // ------- Helpers -------
-    function safeNumber(value) {
-      if (value === undefined || value === null || value === "") return 0;
-      const v = (typeof value === "string") ? value.replace(/[^0-9.\-]/g, "") : value;
-      const n = Number(v);
-      return isNaN(n) ? 0 : n;
-    }
-    function format2(v) { return v.toFixed(2); }
-    function formatIP(ip) { return ip.toFixed(1); }
-
-    const STORAGE_KEY = "acesSeasonStatsCsv";
-    const TOP_N = 3;
-
-    // Sort state
-    let sortKey = "IP";
-    let sortDir = "desc";
-    const ascPreferred = {
-      IP: false,
-      ERA: true,
-      WHIP: true,
-      Kper9: false,
-      BBper9: true,
-      KBB: false
-    };
-
-    function defaultDirFor(key) {
-      return ascPreferred[key] ? "asc" : "desc";
-    }
-
-    function loadSeasonCsv() {
-      try {
-        return localStorage.getItem(STORAGE_KEY);
-      } catch (e) {
-        console.warn("Could not read CSV from localStorage", e);
-        return null;
-      }
-    }
-    function saveSeasonCsv(text) {
-      try {
-        localStorage.setItem(STORAGE_KEY, text);
-      } catch (e) {
-        console.warn("Could not save CSV to localStorage", e);
-      }
-    }
-
-    // ------- Shared parser (same header logic as player.html / hitting) -------
-    function parseSeasonStats(rows) {
-      const headerIndex = rows.findIndex(r =>
-        r.includes("Number") && r.includes("Last") && r.includes("First")
-      );
-      if (headerIndex === -1) {
-        alert("Could not find 'Number, Last, First' header row in this CSV.");
-        return [];
-      }
-
-      const header = rows[headerIndex];
-      const dataRows = rows.slice(headerIndex + 1)
-        .filter(r => r[0] && r[0] !== "Totals");
-
-      const idxNum   = header.indexOf("Number");
-      const idxLast  = header.indexOf("Last");
-      const idxFirst = header.indexOf("First");
-
-      const idxIP      = header.indexOf("IP");
-      const idxGP_pit  = idxIP >= 0 ? header.indexOf("GP", idxIP) : -1;
-      const idxGS_pit  = idxIP >= 0 ? header.indexOf("GS", idxIP) : -1;
-      const idxBF      = header.indexOf("BF");
-      const idxPitches = header.indexOf("#P");
-      const idxW       = idxIP >= 0 ? header.indexOf("W", idxIP) : -1;
-      const idxL       = idxIP >= 0 ? header.indexOf("L", idxIP) : -1;
-      const idxSV      = idxIP >= 0 ? header.indexOf("SV", idxIP) : -1;
-      const idxH_pit   = idxIP >= 0 ? header.indexOf("H", idxIP) : -1;
-      const idxR_pit   = idxIP >= 0 ? header.indexOf("R", idxIP) : -1;
-      const idxER      = idxIP >= 0 ? header.indexOf("ER", idxIP) : -1;
-      const idxBB_pit  = idxIP >= 0 ? header.indexOf("BB", idxIP) : -1;
-      const idxSO_pit  = idxIP >= 0 ? header.indexOf("SO", idxIP) : -1;
-      const idxHBP_pit = idxIP >= 0 ? header.indexOf("HBP", idxIP) : -1;
-      const idxERA     = idxIP >= 0 ? header.indexOf("ERA", idxIP) : -1;
-      const idxWHIP    = idxIP >= 0 ? header.indexOf("WHIP", idxIP) : -1;
-
-      const pitchers = dataRows.map(r => {
-        const first = (r[idxFirst] || "").trim();
-        const last  = (r[idxLast] || "").trim();
-        const name  = `${first} ${last}`.trim();
-        const number = (r[idxNum] || "").trim();
-
-        const IP      = idxIP    >= 0 ? safeNumber(r[idxIP])      : 0;
-        const GP_pit  = idxGP_pit>= 0 ? safeNumber(r[idxGP_pit])  : 0;
-        const GS_pit  = idxGS_pit>= 0 ? safeNumber(r[idxGS_pit])  : 0;
-        const BF      = idxBF    >= 0 ? safeNumber(r[idxBF])      : 0;
-        const pitches = idxPitches>=0 ? safeNumber(r[idxPitches]) : 0;
-        const W       = idxW     >= 0 ? safeNumber(r[idxW])       : 0;
-        const L       = idxL     >= 0 ? safeNumber(r[idxL])       : 0;
-        const SV      = idxSV    >= 0 ? safeNumber(r[idxSV])      : 0;
-        const H_pit   = idxH_pit >= 0 ? safeNumber(r[idxH_pit])   : 0;
-        const R_pit   = idxR_pit >= 0 ? safeNumber(r[idxR_pit])   : 0;
-        const ER      = idxER    >= 0 ? safeNumber(r[idxER])      : 0;
-        const BB_pit  = idxBB_pit>= 0 ? safeNumber(r[idxBB_pit])  : 0;
-        const SO_pit  = idxSO_pit>= 0 ? safeNumber(r[idxSO_pit])  : 0;
-        const HBP_pit = idxHBP_pit>=0 ? safeNumber(r[idxHBP_pit]) : 0;
-
-        let ERA = idxERA >= 0 ? safeNumber(r[idxERA]) : 0;
-        let WHIP = idxWHIP >= 0 ? safeNumber(r[idxWHIP]) : 0;
-        if (!ERA && IP > 0) ERA = (ER * 7) / IP;
-        if (!WHIP && IP > 0) WHIP = (BB_pit + H_pit) / IP;
-
-        const Kper9  = IP > 0 ? (SO_pit * 9) / IP : 0;
-        const BBper9 = IP > 0 ? (BB_pit * 9) / IP : 0;
-        const KBB    = (BB_pit > 0) ? SO_pit / BB_pit : (SO_pit > 0 ? SO_pit : 0);
-
-        return {
-          name,
-          number,
-          IP, GP_pit, GS_pit, BF, pitches,
-          W, L, SV, H_pit, R_pit, ER, BB_pit, SO_pit, HBP_pit,
-          ERA, WHIP, Kper9, BBper9, KBB
-        };
-      });
-
-      return pitchers;
-    }
-
-    // ------- Multi-season merge (by name, handle jersey changes) -------
-    function mergePitcherArrays(listOfArrays) {
-      const map = new Map();
-
-      listOfArrays.forEach(arr => {
-        (arr || []).forEach(p => {
-          const key = (p.name || "").trim().toLowerCase();
-          if (!key) return;
-
-          let agg = map.get(key);
-          if (!agg) {
-            // Start with this season's line
-            agg = { ...p };
-            map.set(key, agg);
-          } else {
-            // Prefer jersey from season with higher IP
-            if (p.number && p.number !== agg.number && p.IP > agg.IP) {
-              agg.number = p.number;
-            }
-
-            agg.IP      += p.IP;
-            agg.GP_pit  += p.GP_pit;
-            agg.GS_pit  += p.GS_pit;
-            agg.BF      += p.BF;
-            agg.pitches += p.pitches;
-            agg.W       += p.W;
-            agg.L       += p.L;
-            agg.SV      += p.SV;
-            agg.H_pit   += p.H_pit;
-            agg.R_pit   += p.R_pit;
-            agg.ER      += p.ER;
-            agg.BB_pit  += p.BB_pit;
-            agg.SO_pit  += p.SO_pit;
-            agg.HBP_pit += p.HBP_pit;
-          }
-        });
-      });
-
-      // Recompute ERA / WHIP / K/9 / BB/9 / K/BB from totals
-      return Array.from(map.values()).map(p => {
-        const IP = p.IP || 0;
-        p.ERA   = IP > 0 ? (p.ER * 7) / IP : 0;
-        p.WHIP  = IP > 0 ? (p.BB_pit + p.H_pit) / IP : 0;
-        p.Kper9 = IP > 0 ? (p.SO_pit * 9) / IP : 0;
-        p.BBper9= IP > 0 ? (p.BB_pit * 9) / IP : 0;
-        p.KBB   = p.BB_pit > 0 ? (p.SO_pit / p.BB_pit) : (p.SO_pit > 0 ? p.SO_pit : 0);
-        return p;
-      });
-    }
-
-    // ------- State -------
-    let pitchers = [];
-    let teamChart = null;
-
-    function sortPitchers(list) {
-      const key = sortKey;
-      const dir = sortDir;
-
-      return list.slice().sort((a, b) => {
-        const av = a[key] ?? 0;
-        const bv = b[key] ?? 0;
-        if (key === "ERA" || key === "WHIP" || key === "BBper9") {
-          // Better lower
-          if (dir === "asc") return av - bv;
-          return bv - av;
+      function saveSeasonCsv(text) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, text);
+        } catch (err) {
+          console.warn("Unable to save CSV to localStorage", err);
         }
-        // Others: better higher
-        if (dir === "desc") return bv - av;
-        return av - bv;
-      });
-    }
-
-    function sortArrowFor(key) {
-      if (key !== sortKey) return "";
-      return sortDir === "desc"
-        ? '<span class="sort-arrow">▼</span>'
-        : '<span class="sort-arrow">▲</span>';
-    }
-
-    // ------- Rendering table with filters/sort -------
-    function renderTable() {
-      const container = document.getElementById("tableContainer");
-      if (!pitchers.length) {
-        container.innerHTML = '<div class="empty-state">Load at least one season or upload a Season Stats CSV.</div>';
-        return;
       }
 
-      const sortEl = document.getElementById("sortByPitch");
-      const minIPEl = document.getElementById("minIP");
-      const minIP  = minIPEl ? (Number(minIPEl.value) || 0) : 0;
-
-      if (sortEl && sortEl.value !== sortKey) {
-        sortEl.value = sortKey;
-      }
-
-      let eligible = pitchers.filter(p => p.IP >= minIP);
-
-      if (!eligible.length) {
-        container.innerHTML = '<div class="empty-state">No pitchers match this IP filter.</div>';
-        return;
-      }
-
-      eligible = sortPitchers(eligible);
-
-      const headerHtml = `
-        <thead>
-          <tr>
-            <th>Pitcher</th>
-            <th class="sortable" data-key="IP">IP ${sortArrowFor("IP")}</th>
-            <th class="sortable" data-key="GP_pit">GP ${sortArrowFor("GP_pit")}</th>
-            <th class="sortable" data-key="GS_pit">GS ${sortArrowFor("GS_pit")}</th>
-            <th class="sortable" data-key="W">W ${sortArrowFor("W")}</th>
-            <th class="sortable" data-key="L">L ${sortArrowFor("L")}</th>
-            <th class="sortable" data-key="SV">SV ${sortArrowFor("SV")}</th>
-            <th class="sortable" data-key="ERA">ERA ${sortArrowFor("ERA")}</th>
-            <th class="sortable" data-key="WHIP">WHIP ${sortArrowFor("WHIP")}</th>
-            <th class="sortable" data-key="SO_pit">K ${sortArrowFor("SO_pit")}</th>
-            <th class="sortable" data-key="BB_pit">BB ${sortArrowFor("BB_pit")}</th>
-            <th class="sortable" data-key="KBB">K/BB ${sortArrowFor("KBB")}</th>
-            <th class="sortable" data-key="Kper9">K/9 ${sortArrowFor("Kper9")}</th>
-            <th class="sortable" data-key="BBper9">BB/9 ${sortArrowFor("BBper9")}</th>
-          </tr>
-        </thead>
-      `;
-
-      const rowsHtml = eligible.map((p, idx) => {
-        const isTop = idx < TOP_N;
-        const rowClass = isTop ? ' class="top-row"' : "";
-        const badge = isTop ? `<span class="top-badge">${idx === 0 ? "Ace" : `#${idx+1}`}</span>` : "";
-        return `
-          <tr${rowClass}>
-            <td class="player-name-cell">
-              <a href="player.html?name=${encodeURIComponent(p.name)}">${p.name}</a>
-              ${badge}
-            </td>
-            <td>${formatIP(p.IP)}</td>
-            <td>${p.GP_pit}</td>
-            <td>${p.GS_pit}</td>
-            <td>${p.W}</td>
-            <td>${p.L}</td>
-            <td>${p.SV}</td>
-            <td>${p.ERA ? format2(p.ERA) : "-"}</td>
-            <td>${p.WHIP ? format2(p.WHIP) : "-"}</td>
-            <td>${p.SO_pit}</td>
-            <td>${p.BB_pit}</td>
-            <td>${p.KBB ? format2(p.KBB) : "-"}</td>
-            <td>${p.Kper9 ? format2(p.Kper9) : "-"}</td>
-            <td>${p.BBper9 ? format2(p.BBper9) : "-"}</td>
-          </tr>
-        `;
-      }).join("");
-
-      container.innerHTML = `
-        <div style="max-height:420px; overflow:auto; margin-top:8px;">
-          <table>
-            ${headerHtml}
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      const ths = container.querySelectorAll("th.sortable");
-      ths.forEach(th => {
-        th.addEventListener("click", () => {
-          const key = th.getAttribute("data-key");
-          if (!key) return;
-          if (sortKey === key) {
-            sortDir = (sortDir === "desc") ? "asc" : "desc";
-          } else {
-            sortKey = key;
-            sortDir = defaultDirFor(key);
-          }
-          const sortEl2 = document.getElementById("sortByPitch");
-          if (sortEl2) sortEl2.value = sortKey;
-          renderTable();
-        });
-      });
-    }
-
-    // ------- Team chart -------
-    function renderTeamChart() {
-      const chartStatus = document.getElementById("chartStatus");
-      const ctx = document.getElementById("teamPitchingChart").getContext("2d");
-
-      if (!pitchers.length) {
-        chartStatus.textContent = "Chart will appear once pitching stats are available.";
-        if (teamChart) teamChart.destroy();
-        return;
-      }
-
-      const totals = pitchers.reduce((acc, p) => {
-        acc.IP += p.IP;
-        acc.ER += p.ER;
-        acc.BB += p.BB_pit;
-        acc.H += p.H_pit;
-        return acc;
-      }, {IP:0, ER:0, BB:0, H:0});
-
-      const ERA = totals.IP > 0 ? (totals.ER * 7) / totals.IP : 0;
-      const WHIP = totals.IP > 0 ? (totals.BB + totals.H) / totals.IP : 0;
-
-      const labels = ["Team ERA", "Team WHIP"];
-      const values = [ERA, WHIP];
-
-      if (teamChart) teamChart.destroy();
-
-      teamChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Run Prevention",
-            data: values
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              ticks: { color: "#d2d6f0" },
-              grid: { display: false }
-            },
-            y: {
-              beginAtZero: true,
-              ticks: { color: "#d2d6f0" },
-              grid: { color: "rgba(255,255,255,0.06)" }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: "#d2d6f0" } },
-            tooltip: {
-              callbacks: {
-                label: ctx => ` ${ctx.label}: ${ctx.parsed.y.toFixed(2)}`
-              }
-            }
-          }
+      function loadSeasonCsv() {
+        try {
+          return window.localStorage.getItem(STORAGE_KEY);
+        } catch (err) {
+          console.warn("Unable to load CSV from localStorage", err);
+          return null;
         }
-      });
+      }
 
-      chartStatus.textContent = "ERA/WHIP calculated from all pitcher lines in the selected seasons.";
-    }
+      function clearSeasonCsv() {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch (err) {
+          console.warn("Unable to clear CSV from localStorage", err);
+        }
+      }
 
-    // ------- CSV handling (manual upload) -------
-    function parseSeasonCsvText(csvText, opts = {}) {
-      const statusEl = document.getElementById("loadStatus");
-      statusEl.textContent = "Parsing CSV...";
+      function parseCsv(text) {
+        const lines = text.replace(/\r\n/g, "\n").split("\n");
+        const header = lines[0].split(",").map((h) => h.trim());
+        const rows = [];
 
-      Papa.parse(csvText, {
-        header: false,
-        dynamicTyping: false,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const rows = results.data;
-          if (!rows || rows.length < 3) {
-            alert("CSV looks too short to be a GameChanger Season Stats export.");
-            statusEl.textContent = "Failed to parse CSV.";
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const cells = [];
+          let current = "";
+          let inQuotes = false;
+          for (let char of line) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+              continue;
+            }
+            if (char === "," && !inQuotes) {
+              cells.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          cells.push(current);
+
+          const row = {};
+          header.forEach((key, idx) => {
+            row[key] = cells[idx] !== undefined ? cells[idx].trim() : "";
+          });
+          rows.push(row);
+        }
+        return rows;
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined) return 0;
+        const n = Number(String(value).replace(/[^0-9.-]/g, ""));
+        return isNaN(n) ? 0 : n;
+      }
+
+      function safeGet(row, key) {
+        return row[key] ?? row[key.toLowerCase()] ?? "";
+      }
+
+      function setLoadStatus(msg) {
+        const el = document.getElementById("loadStatus");
+        if (!el) return;
+        el.innerHTML = msg || "";
+      }
+
+      async function fetchPitchingSeasons() {
+        const select = document.getElementById("seasonSelect");
+        if (!select) return;
+        try {
+          const res = await fetch("/api/pitching/seasons");
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const seasons = await res.json();
+          select.innerHTML = "";
+          if (!seasons || !seasons.length) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No pitching seasons found (API)";
+            opt.disabled = true;
+            select.appendChild(opt);
             return;
           }
-
-          pitchers = parseSeasonStats(rows);
-          if (!pitchers.length) {
-            statusEl.textContent = "No pitcher rows found.";
-            return;
+          for (const s of seasons) {
+            const opt = document.createElement("option");
+            opt.value = s.id;
+            opt.textContent = s.label || s.id;
+            select.appendChild(opt);
           }
-
-          renderTable();
-          renderTeamChart();
-
-          statusEl.textContent = `Loaded pitching lines for ${pitchers.length} players from ${opts.fromStorage ? "cached" : "uploaded"} CSV.`;
-        },
-        error: (err) => {
-          console.error(err);
-          alert("Error parsing CSV: " + err.message);
-          statusEl.textContent = "Error parsing CSV.";
-        }
-      });
-    }
-
-    function handleCsv(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target.result;
-        saveSeasonCsv(text);
-        parseSeasonCsvText(text, { fromStorage: false });
-      };
-      reader.readAsText(file);
-    }
-
-    // ------- API: seasons & multi-season load -------
-    async function fetchPitchingSeasons() {
-      const statusEl = document.getElementById("loadStatus");
-      const select = document.getElementById("seasonSelectPitch");
-      try {
-        statusEl.textContent = "Loading pitching seasons from server...";
-        const res = await fetch("/api/pitching/seasons");
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const seasons = await res.json(); // [{id, label}, ...]
-
-        select.innerHTML = "";
-        if (!seasons || !seasons.length) {
-          statusEl.textContent = "Server returned no pitching seasons. You can still upload a CSV manually.";
-          return;
-        }
-
-        seasons.forEach((s, idx) => {
+        } catch (err) {
+          console.error("Error fetching pitching seasons", err);
           const opt = document.createElement("option");
-          opt.value = s.id;
-          opt.textContent = s.label || s.id;
-          if (idx === 0) opt.selected = true;
+          opt.value = "";
+          opt.textContent = "Error loading seasons (API)";
+          opt.disabled = true;
           select.appendChild(opt);
-        });
-
-        statusEl.textContent = "Select one or more seasons and click Apply, or upload a CSV.";
-      } catch (err) {
-        console.error("Error loading pitching seasons", err);
-        statusEl.textContent = "Could not load pitching seasons from server. You can still upload a CSV manually.";
-      }
-    }
-
-    function getSelectedPitchSeasonIds() {
-      const select = document.getElementById("seasonSelectPitch");
-      const ids = [];
-      for (const opt of select.options) {
-        if (opt.selected) ids.push(opt.value);
-      }
-      return ids;
-    }
-
-    async function fetchPitchingCsvRows(seasonId) {
-      const res = await fetch(`/api/pitching/csv/${encodeURIComponent(seasonId)}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} for season ${seasonId}`);
-      }
-      const text = await res.text();
-      return await new Promise((resolve, reject) => {
-        Papa.parse(text, {
-          header: false,
-          dynamicTyping: false,
-          skipEmptyLines: true,
-          complete: r => resolve(r.data),
-          error: err => reject(err)
-        });
-      });
-    }
-
-    async function loadPitchingFromApi() {
-      const statusEl = document.getElementById("loadStatus");
-      const ids = getSelectedPitchSeasonIds();
-      if (!ids.length) {
-        statusEl.textContent = "No seasons selected. Select one or more seasons, then click Apply.";
-        return;
+        }
       }
 
-      statusEl.textContent = "Loading pitching data from selected seasons...";
-      try {
-        const allPitcherArrays = [];
-        for (const id of ids) {
-          const rows = await fetchPitchingCsvRows(id);
-          const perSeasonPitchers = parseSeasonStats(rows);
-          allPitcherArrays.push(perSeasonPitchers);
+      async function fetchPitchingCsvFromApi(seasonId) {
+        const res = await fetch(`/api/pitching/csv/${encodeURIComponent(seasonId)}`);
+        if (!res.ok) {
+          throw new Error(
+            `Failed to fetch pitching CSV for season ${seasonId}: HTTP ${res.status}`
+          );
+        }
+        return await res.text();
+      }
+
+      async function fetchPitchingLastUpdated() {
+        const el = document.getElementById("lastUpdated");
+        if (!el) return;
+
+        try {
+          const res = await fetch("/api/pitching/last-updated");
+          if (!res.ok) throw new Error("HTTP " + res.status);
+
+          const data = await res.json();
+          if (!data.last_updated) {
+            el.textContent = "";
+            return;
+          }
+
+          const dt = new Date(data.last_updated);
+          if (!isNaN(dt.getTime())) {
+            el.textContent = "Stats last updated: " + dt.toLocaleString();
+          } else {
+            el.textContent = "Stats last updated: " + data.last_updated;
+          }
+        } catch (err) {
+          console.error("Error fetching pitching last-updated", err);
+        }
+      }
+
+      function combinePitchingRows(rows) {
+        const byKey = new Map();
+
+        for (const row of rows) {
+          const rawName = safeGet(row, "PlayerName") || safeGet(row, "Player");
+          const uniform = (safeGet(row, "Uniform") || "").trim();
+          const nameKey = (rawName || "").trim().toLowerCase();
+          if (!nameKey) continue;
+
+          const key = nameKey;
+          const existing = byKey.get(key) || {
+            PlayerName: rawName,
+            Uniforms: new Set(),
+            IP: 0,
+            ER: 0,
+            H: 0,
+            BB: 0,
+            SO: 0,
+          };
+
+          if (uniform) existing.Uniforms.add(uniform);
+
+          existing.IP += toNumber(safeGet(row, "IP"));
+          existing.ER += toNumber(safeGet(row, "ER"));
+          existing.H += toNumber(safeGet(row, "H"));
+          existing.BB += toNumber(safeGet(row, "BB"));
+          existing.SO += toNumber(safeGet(row, "SO"));
+
+          byKey.set(key, existing);
         }
 
-        pitchers = mergePitcherArrays(allPitcherArrays);
-        if (!pitchers.length) {
-          statusEl.textContent = "No pitcher rows found in selected seasons.";
-          renderTable();
-          renderTeamChart();
+        const out = [];
+        for (const [, agg] of byKey) {
+          const ip = agg.IP;
+          const era = ip > 0 ? (agg.ER * 9) / ip : 0;
+          const whip = ip > 0 ? (agg.BB + agg.H) / ip : 0;
+          const kper9 = ip > 0 ? (agg.SO * 9) / ip : 0;
+          const bbper9 = ip > 0 ? (agg.BB * 9) / ip : 0;
+
+          out.push({
+            PlayerName: agg.PlayerName,
+            Uniform: Array.from(agg.Uniforms).join(" / "),
+            IP: ip,
+            ER: agg.ER,
+            H: agg.H,
+            BB: agg.BB,
+            SO: agg.SO,
+            ERA: era,
+            WHIP: whip,
+            Kper9: kper9,
+            BBper9: bbper9,
+          });
+        }
+        return out;
+      }
+
+      let currentSortKey = "ERA";
+      let currentSortDir = "asc";
+      let combinedPitching = null;
+
+      function renderPitchingTable(rows) {
+        const tbody = document.getElementById("pitchingTbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        if (!rows || !rows.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 11;
+          td.textContent = "No pitching data. Select seasons or upload a CSV.";
+          td.classList.add("stat-neutral");
+          tr.appendChild(td);
+          tbody.appendChild(tr);
           return;
         }
 
-        renderTable();
-        renderTeamChart();
+        const sorted = [...rows].sort((a, b) => {
+          const ak = a[currentSortKey];
+          const bk = b[currentSortKey];
 
-        statusEl.textContent = `Loaded ${pitchers.length} pitchers from ${ids.length} season(s) via server.`;
-      } catch (err) {
-        console.error("Error loading multi-season pitching data", err);
-        statusEl.textContent = "Error loading pitching data from server. Check console or upload a CSV manually.";
+          const aVal = typeof ak === "number" ? ak : toNumber(ak);
+          const bVal = typeof bk === "number" ? bk : toNumber(bk);
+
+          if (currentSortDir === "asc") {
+            return aVal - bVal;
+          } else {
+            return bVal - aVal;
+          }
+        });
+
+        sorted.forEach((row, idx) => {
+          const tr = document.createElement("tr");
+          if (idx < 3 && currentSortKey === "ERA") {
+            tr.classList.add("highlight-row");
+          }
+
+          const nameTd = document.createElement("td");
+          nameTd.className = "name-cell";
+          nameTd.innerHTML = `${row.PlayerName || ""}${
+            row.Uniform
+              ? `<small>Uniform: ${row.Uniform}</small>`
+              : ""
+          }`;
+          tr.appendChild(nameTd);
+
+          function addTd(val, cls) {
+            const td = document.createElement("td");
+            td.textContent = val;
+            if (cls) td.className = cls;
+            tr.appendChild(td);
+          }
+
+          addTd(row.Uniform || "", "stat-neutral");
+          addTd(row.IP.toFixed(1), "stat-neutral");
+          addTd(row.ER, "stat-bad");
+          addTd(row.H, "stat-bad");
+          addTd(row.BB, "stat-bad");
+          addTd(row.SO, "stat-good");
+          addTd(row.ERA.toFixed(2), "stat-good");
+          addTd(row.WHIP.toFixed(2), "stat-good");
+          addTd(row.Kper9.toFixed(2), "stat-good");
+          addTd(row.BBper9.toFixed(2), "stat-bad");
+
+          tbody.appendChild(tr);
+        });
       }
-    }
 
-    // ------- Events -------
-    document.getElementById("csvFile").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      handleCsv(file);
-    });
-
-    document.getElementById("sortByPitch").addEventListener("change", (e) => {
-      sortKey = e.target.value;
-      sortDir = defaultDirFor(sortKey);
-      renderTable();
-    });
-
-    document.getElementById("minIP").addEventListener("input", renderTable);
-
-    document.getElementById("applySeasonsPitch").addEventListener("click", () => {
-      loadPitchingFromApi();
-    });
-
-    document.addEventListener("DOMContentLoaded", () => {
-      fetchPitchingSeasons();  // populate multi-season list
-
-      // Backwards-compat: if hitting cached a CSV in localStorage, use it.
-      const cached = loadSeasonCsv();
-      if (cached) {
-        parseSeasonCsvText(cached, { fromStorage: true });
+      function updatePitchingTableHeaderSortState() {
+        const ths = document.querySelectorAll("#pitchingTable thead th");
+        ths.forEach((th) => {
+          th.classList.remove("sort-asc", "sort-desc");
+          const key = th.getAttribute("data-key");
+          if (key === currentSortKey) {
+            th.classList.add(
+              currentSortDir === "asc" ? "sort-asc" : "sort-desc"
+            );
+          }
+        });
       }
-    });
-  </script>
-</body>
+
+      function attachPitchingHeaderSortHandlers() {
+        const ths = document.querySelectorAll("#pitchingTable thead th");
+        ths.forEach((th) => {
+          th.addEventListener("click", () => {
+            const key = th.getAttribute("data-key");
+            if (!key) return;
+            if (currentSortKey === key) {
+              currentSortDir = currentSortDir === "asc" ? "desc" : "asc";
+            } else {
+              currentSortKey = key;
+              currentSortDir = key === "PlayerName" ? "asc" : "desc";
+            }
+            updatePitchingTableHeaderSortState();
+            if (combinedPitching) {
+              renderPitchingTable(combinedPitching);
+            }
+          });
+        });
+      }
+
+      function parsePitchingCsvText(text, { fromStorage = false } = {}) {
+        if (!text) return;
+        setLoadStatus(
+          fromStorage
+            ? "Loaded pitching stats from localStorage cache."
+            : "Loaded pitching stats from selected seasons."
+        );
+
+        const rows = parseCsv(text);
+        if (!rows || !rows.length) {
+          setLoadStatus("Pitching CSV appears to be empty or invalid.");
+          return;
+        }
+
+        const combined = combinePitchingRows(rows).filter((r) => r.IP > 0);
+        combinedPitching = combined;
+        renderPitchingTable(combined);
+        updatePitchingTableHeaderSortState();
+      }
+
+      async function handleApplySeasonsClick() {
+        const select = document.getElementById("seasonSelect");
+        if (!select) return;
+        const selected = Array.from(select.selectedOptions).map((opt) => opt.value);
+        if (!selected.length) {
+          setLoadStatus("Please select at least one season.");
+          return;
+        }
+
+        setLoadStatus("Loading pitching CSVs from server for selected season(s)…");
+
+        try {
+          const texts = [];
+          for (const id of selected) {
+            const txt = await fetchPitchingCsvFromApi(id);
+            texts.push(txt);
+          }
+
+          const allLines = [];
+          let header = null;
+          for (const t of texts) {
+            const lines = t.replace(/\r\n/g, "\n").split("\n");
+            if (!lines.length) continue;
+            if (!header) {
+              header = lines[0];
+              allLines.push(header);
+            }
+            const dataLines = lines.slice(1).filter((ln) => ln.trim() !== "");
+            allLines.push(...dataLines);
+          }
+
+          const mergedText = allLines.join("\n");
+          saveSeasonCsv(mergedText);
+          parsePitchingCsvText(mergedText, { fromStorage: false });
+        } catch (err) {
+          console.error("Error applying pitching seasons", err);
+          setLoadStatus(
+            "Error loading pitching seasons from API. You can still upload a CSV manually."
+          );
+        }
+      }
+
+      function handleCsvFileChange(evt) {
+        const fileInput = evt.target;
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          if (!text) {
+            setLoadStatus("Uploaded pitching file is empty.");
+            return;
+          }
+          saveSeasonCsv(text);
+          parsePitchingCsvText(text, { fromStorage: true });
+        };
+        reader.readAsText(file);
+      }
+
+      function handleClearStorageClick() {
+        clearSeasonCsv();
+        setLoadStatus(
+          "Cleared locally cached pitching CSV. You can re-upload or select seasons."
+        );
+        combinedPitching = null;
+        renderPitchingTable([]);
+      }
+
+      function handleClearSeasonsClick() {
+        const select = document.getElementById("seasonSelect");
+        if (select) {
+          Array.from(select.options).forEach((opt) => (opt.selected = false));
+        }
+        setLoadStatus("Cleared selected pitching seasons. No server CSVs loaded.");
+        combinedPitching = null;
+        renderPitchingTable([]);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        attachPitchingHeaderSortHandlers();
+
+        const fileInput = document.getElementById("csvFileInput");
+        if (fileInput) {
+          fileInput.addEventListener("change", handleCsvFileChange);
+        }
+
+        const clearBtn = document.getElementById("clearStorageBtn");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", handleClearStorageClick);
+        }
+
+        const applyBtn = document.getElementById("applySeasonsBtn");
+        if (applyBtn) {
+          applyBtn.addEventListener("click", handleApplySeasonsClick);
+        }
+
+        const clearSeasonsBtn = document.getElementById("clearSeasonsBtn");
+        if (clearSeasonsBtn) {
+          clearSeasonsBtn.addEventListener("click", handleClearSeasonsClick);
+        }
+
+        const cached = loadSeasonCsv();
+        if (cached) {
+          parsePitchingCsvText(cached, { fromStorage: true });
+        }
+
+        fetchPitchingSeasons();
+        fetchPitchingLastUpdated();
+      });
+    </script>
+  </body>
 </html>

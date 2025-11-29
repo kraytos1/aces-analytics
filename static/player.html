@@ -1,1212 +1,1107 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Aces Analytics – Player Explorer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- PapaParse & Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-  <style>
-    :root {
-      --bg: #0b0c10;
-      --bg-card: #151821;
-      --accent: #ff7a00;
-      --accent-soft: rgba(255, 122, 0, 0.2);
-      --text: #f5f5f5;
-      --muted: #a0a4b8;
-      --danger: #ff4b6a;
-      --success: #00c98b;
-      --border-radius: 14px;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-      background: radial-gradient(circle at top, #20253a 0, #05060a 55%);
-      color: var(--text);
-    }
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      background: rgba(5, 6, 10, 0.9);
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 14px;
-    }
-    .logo-mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, #ffd5a5, #ff7a00);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 16px;
-      color: #0b0c10;
-      box-shadow: 0 0 18px rgba(255, 122, 0, 0.7);
-    }
-    .nav {
-      display: flex;
-      gap: 12px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .nav span {
-      padding: 6px 10px;
-      border-radius: 999px;
-      cursor: pointer;
-    }
-    .nav span.active {
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-weight: 600;
-    }
-    main {
-      padding: 18px 24px 32px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    h1 {
-      margin: 4px 0 8px;
-      font-size: 26px;
-    }
-    .subheading {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 16px;
-    }
-    .layout-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      gap: 18px;
-    }
-    @media (max-width: 900px) {
-      .layout-grid {
-        grid-template-columns: minmax(0, 1fr);
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aces Analytics – Player Explorer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #050814;
+        --bg-alt: #0b1020;
+        --bg-card: #13192b;
+        --accent: #f97316;
+        --accent-soft: rgba(249, 115, 22, 0.18);
+        --accent-strong: rgba(249, 115, 22, 0.32);
+        --accent-border: rgba(249, 115, 22, 0.5);
+        --accent-text: #fed7aa;
+        --text: #f8fafc;
+        --muted: #8b9bbf;
+        --border-subtle: rgba(148, 163, 184, 0.18);
+        --border-strong: rgba(148, 163, 184, 0.28);
+        --positive: #2dd4bf;
+        --negative: #f97373;
+        --warning: #facc15;
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.85);
+        --shadow-subtle: 0 14px 35px rgba(15, 23, 42, 0.65);
       }
-    }
-    .card {
-      background: rgba(8, 10, 20, 0.95);
-      border-radius: var(--border-radius);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      padding: 16px 16px 18px;
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .card-title {
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .card-subtitle {
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: var(--muted);
-    }
-    .tag-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 999px;
-      background: var(--accent);
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 12px;
-      align-items: center;
-    }
-    .file-input {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px dashed rgba(255, 255, 255, 0.2);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .file-input input { display: none; }
-    .select-player {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 6px 10px;
-      font-size: 12px;
-      background: rgba(10, 11, 20, 0.9);
-      color: var(--text);
-    }
-    .badge-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .badge {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--muted);
-    }
-    .badge.hot { color: var(--accent); background: var(--accent-soft); }
-    .badge.good { color: var(--success); background: rgba(0, 201, 139, 0.18); }
-    .badge.warn { color: var(--danger); background: rgba(255, 75, 106, 0.16); }
 
-    .player-header-main {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 4px;
-    }
-    .player-name-block {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .player-name {
-      font-size: 22px;
-      font-weight: 700;
-    }
-    .player-meta {
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .jersey-pill {
-      min-width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      background: radial-gradient(circle at 30% 30%, #ffd5a5, #ff7a00);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 18px rgba(255, 122, 0, 0.7);
-      font-weight: 800;
-      color: #0b0c10;
-    }
-    .jersey-number {
-      font-size: 22px;
-      line-height: 1;
-    }
-    .jersey-label {
-      font-size: 9px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .metric-tile {
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 10px;
-      padding: 6px 8px;
-    }
-    .metric-label {
-      font-size: 10px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 2px;
-    }
-    .metric-value {
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .metric-small {
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .section-label {
-      font-size: 12px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin: 10px 0 4px;
-    }
-    .stat-row {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 6px;
-      font-size: 12px;
-    }
-    .stat-label {
-      color: var(--muted);
-    }
-    .stat-val {
-      font-weight: 500;
-    }
-
-    .status-line {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    .empty-state {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 10px;
-    }
-
-    .print-btn {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      padding: 6px 10px;
-      font-size: 12px;
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-    }
-    .print-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .no-print { }
-
-    @media print {
       body {
-        background: #ffffff;
-        color: #000000;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top left, #1e293b 0, #020617 42%);
+        color: var(--text);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
       }
-      header,
-      .no-print,
+
+      main {
+        max-width: 1200px;
+        margin: 24px auto 48px;
+        padding: 0 16px 16px;
+      }
+
+      .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .page-title-block {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.9rem;
+        letter-spacing: 0.03em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .pill span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 16px;
+        min-height: 16px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #020617;
+        font-size: 0.65rem;
+        font-weight: 700;
+      }
+
       .subheading {
-        display: none !important;
-      }
-      .card {
-        box-shadow: none;
-        border: 1px solid #cccccc;
-        background: #ffffff;
-      }
-    }
-  </style>
-</head>
-<body>
-  <header class="no-print">
-    <div class="logo">
-      <div class="logo-mark">A</div>
-      <div>Aces Analytics</div>
-    </div>
-    <nav class="nav">
-      <span onclick="location.href='team-hitting.html'">Team Hitting</span>
-      <span onclick="location.href='team-pitching.html'">Pitching</span>
-      <span class="active" onclick="location.href='player.html'">Players</span>
-      <span onclick="location.href='tournament.html'">Tournaments</span>
-    </nav>
-  </header>
-
-  <main>
-    <h1>Player Explorer</h1>
-    <div class="subheading">
-      Load one or more <strong>GC Season Stats CSVs</strong> via the server seasons list,
-      or upload a CSV manually. Then select a player or pass <code>?name=First%20Last</code> in the URL.
-    </div>
-
-    <div class="card no-print" style="margin-bottom:16px;">
-      <div class="controls">
-        <label style="font-size:12px; color: var(--muted);">
-          Seasons (from server)
-        </label>
-        <select id="seasonSelect" class="select-player" multiple size="3" style="min-width:180px;"></select>
-        <button type="button" id="applySeasons" class="select-player" style="cursor:pointer;">
-          Apply Seasons
-        </button>
-        <span style="font-size:11px; color: var(--muted);">or</span>
-
-        <label class="file-input">
-          <span>📄 Choose GC Season Stats CSV</span>
-          <input type="file" id="csvFile" accept=".csv" />
-        </label>
-
-        <select id="playerSelect" class="select-player" disabled>
-          <option value="">Select player...</option>
-        </select>
-
-        <button type="button" id="printBtn" class="print-btn no-print" disabled>
-          🖨️ Print Report
-        </button>
-      </div>
-      <div class="status-line" id="loadStatus">
-        No data loaded yet. Use seasons from server or upload a Season Stats CSV.
-      </div>
-    </div>
-
-    <div class="layout-grid">
-      <!-- Left: Player + Hitting + Pitching -->
-      <section class="card" id="playerCard">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Player Card</div>
-            <div class="card-subtitle">Multi-season overview – hitting & pitching</div>
-          </div>
-          <div class="tag">
-            <span class="tag-dot"></span> COMBINED SEASONS
-          </div>
-        </div>
-
-        <div id="playerContent">
-          <div class="empty-state">
-            Load data and select a player to view their card.
-          </div>
-        </div>
-      </section>
-
-      <!-- Right: Hitting profile chart -->
-      <section class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Hitting Profile</div>
-            <div class="card-subtitle">AVG / OBP / SLG / OPS (selected seasons)</div>
-          </div>
-        </div>
-        <div style="height:260px;">
-          <canvas id="hittingChart"></canvas>
-        </div>
-        <div class="status-line" id="chartStatus">
-          Chart will appear once a player with hitting stats is selected.
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <script>
-    // ---------- Helpers ----------
-    function safeNumber(value) {
-      if (value === undefined || value === null || value === "") return 0;
-      const v = (typeof value === "string") ? value.replace(/[^0-9.\-]/g, "") : value;
-      const n = Number(v);
-      return isNaN(n) ? 0 : n;
-    }
-
-    function format3(v) { return v.toFixed(3); }
-    function formatAvg(v) {
-      if (!v) return ".000";
-      const s = v.toFixed(3);
-      return s.startsWith("0") ? s.slice(1) : s;
-    }
-    function formatPct(v) { return (v * 100).toFixed(1) + "%"; }
-    function formatIP(ip) { return ip.toFixed(1); }
-
-    function getQueryParam(key) {
-      const params = new URLSearchParams(window.location.search);
-      const val = params.get(key);
-      return val ? decodeURIComponent(val) : null;
-    }
-
-    // ---------- Global State ----------
-    let players = [];
-    let selectedPlayer = null;
-    let hittingChart = null;
-
-    const STORAGE_KEY = "acesSeasonStatsCsv";
-
-    function saveSeasonCsv(text) {
-      try {
-        localStorage.setItem(STORAGE_KEY, text);
-      } catch (e) {
-        console.warn("Could not save CSV to localStorage", e);
-      }
-    }
-
-    function loadSeasonCsv() {
-      try {
-        return localStorage.getItem(STORAGE_KEY);
-      } catch (e) {
-        console.warn("Could not read CSV from localStorage", e);
-        return null;
-      }
-    }
-
-    // ---------- CSV -> Player objects (per season) ----------
-    function parseSeasonStats(rows) {
-      // Find header row
-      const headerIndex = rows.findIndex(r =>
-        r.includes("Number") && r.includes("Last") && r.includes("First")
-      );
-      if (headerIndex === -1) {
-        alert("Could not find 'Number, Last, First' header row in this CSV.");
-        return [];
+        font-size: 0.9rem;
+        color: var(--muted);
+        max-width: 640px;
       }
 
-      const header = rows[headerIndex];
-      const dataRows = rows.slice(headerIndex + 1)
-        .filter(r => r[0] && r[0] !== "Totals");
+      .subheading strong {
+        color: var(--accent-text);
+        font-weight: 600;
+      }
 
-      const idxNum   = header.indexOf("Number");
-      const idxLast  = header.indexOf("Last");
-      const idxFirst = header.indexOf("First");
+      .status-line {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
 
-      const idxGP_hit  = header.indexOf("GP");
-      const idxPA      = header.indexOf("PA");
-      const idxAB      = header.indexOf("AB");
-      const idxAVG     = header.indexOf("AVG");
-      const idxOBP     = header.indexOf("OBP");
-      const idxOPS     = header.indexOf("OPS");
-      const idxSLG     = header.indexOf("SLG");
-      const idxH       = header.indexOf("H");
-      const idx1B      = header.indexOf("1B");
-      const idx2B      = header.indexOf("2B");
-      const idx3B      = header.indexOf("3B");
-      const idxHR_hit  = header.indexOf("HR");
-      const idxRBI     = header.indexOf("RBI");
-      const idxR_hit   = header.indexOf("R");
-      const idxBB_hit  = header.indexOf("BB");
-      const idxSO_hit  = header.indexOf("SO");
-      const idxHBP_hit = header.indexOf("HBP");
-      const idxSAC     = header.indexOf("SAC");
-      const idxSF      = header.indexOf("SF");
-      const idxSB      = header.indexOf("SB");
-      const idxSBpct   = header.indexOf("SB%");
+      .status-line strong {
+        color: var(--accent-text);
+      }
 
-      // Pitching section
-      const idxIP      = header.indexOf("IP");
-      const idxGP_pit  = idxIP >= 0 ? header.indexOf("GP", idxIP) : -1;
-      const idxGS_pit  = idxIP >= 0 ? header.indexOf("GS", idxIP) : -1;
-      const idxBF      = header.indexOf("BF");
-      const idxPitches = header.indexOf("#P");
-      const idxW       = idxIP >= 0 ? header.indexOf("W", idxIP) : -1;
-      const idxL       = idxIP >= 0 ? header.indexOf("L", idxIP) : -1;
-      const idxSV      = idxIP >= 0 ? header.indexOf("SV", idxIP) : -1;
-      const idxH_pit   = idxIP >= 0 ? header.indexOf("H", idxIP) : -1;
-      const idxR_pit   = idxIP >= 0 ? header.indexOf("R", idxIP) : -1;
-      const idxER      = idxIP >= 0 ? header.indexOf("ER", idxIP) : -1;
-      const idxBB_pit  = idxIP >= 0 ? header.indexOf("BB", idxIP) : -1;
-      const idxSO_pit  = idxIP >= 0 ? header.indexOf("SO", idxIP) : -1;
-      const idxHBP_pit = idxIP >= 0 ? header.indexOf("HBP", idxIP) : -1;
-      const idxERA     = idxIP >= 0 ? header.indexOf("ERA", idxIP) : -1;
-      const idxWHIP    = idxIP >= 0 ? header.indexOf("WHIP", idxIP) : -1;
-      const idxBAA     = header.indexOf("BAA");
-      const idxFIP     = header.indexOf("FIP");
-      const idxKBF     = header.indexOf("K/BF");
-      const idxPIP     = header.indexOf("P/IP");
-      const idxPBF     = header.indexOf("P/BF");
+      .layout-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 18px;
+        align-items: flex-start;
+      }
 
-      const result = dataRows.map(r => {
-        const first = (r[idxFirst] || "").trim();
-        const last  = (r[idxLast] || "").trim();
-        const name  = `${first} ${last}`.trim();
-        const number = (r[idxNum] || "").trim();
-
-        const GP_hit = safeNumber(r[idxGP_hit]);
-        const PA     = safeNumber(r[idxPA]);
-        const AB     = safeNumber(r[idxAB]);
-        const H      = safeNumber(r[idxH]);
-        const _1B    = safeNumber(r[idx1B]);
-        const _2B    = safeNumber(r[idx2B]);
-        const _3B    = safeNumber(r[idx3B]);
-        const HR_hit = safeNumber(r[idxHR_hit]);
-        const RBI    = safeNumber(r[idxRBI]);
-        const R_hit  = safeNumber(r[idxR_hit]);
-        const BB_hit = safeNumber(r[idxBB_hit]);
-        const SO_hit = safeNumber(r[idxSO_hit]);
-        const HBP_hit= safeNumber(r[idxHBP_hit]);
-        const SAC    = safeNumber(r[idxSAC]);
-        const SF     = safeNumber(r[idxSF]);
-        const SB     = safeNumber(r[idxSB]);
-        const SBpct  = safeNumber(r[idxSBpct]);
-
-        const singles = Math.max(0, H - _2B - _3B - HR_hit);
-        const TB = singles + 2 * _2B + 3 * _3B + 4 * HR_hit;
-
-        let AVG = safeNumber(r[idxAVG]);
-        let OBP = safeNumber(r[idxOBP]);
-        let SLG = safeNumber(r[idxSLG]);
-        let OPS = safeNumber(r[idxOPS]);
-
-        if (!AVG && AB > 0) AVG = H / AB;
-        if (!OBP && (AB + BB_hit + HBP_hit + SF) > 0) {
-          OBP = (H + BB_hit + HBP_hit) / (AB + BB_hit + HBP_hit + SF);
+      @media (max-width: 980px) {
+        .layout-grid {
+          grid-template-columns: minmax(0, 1fr);
         }
-        if (!SLG && AB > 0) SLG = TB / AB;
-        if (!OPS) OPS = OBP + SLG;
+      }
 
-        const ISO = SLG - AVG;
-        const BBpct = PA > 0 ? BB_hit / PA : 0;
-        const Kpct  = PA > 0 ? SO_hit / PA : 0;
+      .card {
+        background: radial-gradient(
+            circle at top left,
+            rgba(249, 115, 22, 0.14),
+            transparent 54%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(56, 189, 248, 0.08),
+            transparent 58%
+          ),
+          var(--bg-card);
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--shadow-soft);
+        padding: 14px 16px 14px;
+      }
 
-        const IP      = idxIP    >= 0 ? safeNumber(r[idxIP])      : 0;
-        const GP_pit  = idxGP_pit>= 0 ? safeNumber(r[idxGP_pit])  : 0;
-        const GS_pit  = idxGS_pit>= 0 ? safeNumber(r[idxGS_pit])  : 0;
-        const BF      = idxBF    >= 0 ? safeNumber(r[idxBF])      : 0;
-        const pitches = idxPitches>=0 ? safeNumber(r[idxPitches]) : 0;
-        const W       = idxW     >= 0 ? safeNumber(r[idxW])       : 0;
-        const L       = idxL     >= 0 ? safeNumber(r[idxL])       : 0;
-        const SV      = idxSV    >= 0 ? safeNumber(r[idxSV])      : 0;
-        const H_pit   = idxH_pit >= 0 ? safeNumber(r[idxH_pit])   : 0;
-        const R_pit   = idxR_pit >= 0 ? safeNumber(r[idxR_pit])   : 0;
-        const ER      = idxER    >= 0 ? safeNumber(r[idxER])      : 0;
-        const BB_pit  = idxBB_pit>= 0 ? safeNumber(r[idxBB_pit])  : 0;
-        const SO_pit  = idxSO_pit>= 0 ? safeNumber(r[idxSO_pit])  : 0;
-        const HBP_pit = idxHBP_pit>=0 ? safeNumber(r[idxHBP_pit]) : 0;
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
 
-        let ERA = idxERA >= 0 ? safeNumber(r[idxERA]) : 0;
-        let WHIP = idxWHIP >= 0 ? safeNumber(r[idxWHIP]) : 0;
-        if (!ERA && IP > 0) ERA = (ER * 7) / IP;
-        if (!WHIP && IP > 0) WHIP = (BB_pit + H_pit) / IP;
+      .card-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
 
-        const BAA     = idxBAA   >= 0 ? safeNumber(r[idxBAA])     : 0;
-        const FIP     = idxFIP   >= 0 ? safeNumber(r[idxFIP])     : 0;
-        const KBF     = idxKBF   >= 0 ? safeNumber(r[idxKBF])     : 0;
-        const PIP     = idxPIP   >= 0 ? safeNumber(r[idxPIP])     : 0;
-        const PBF     = idxPBF   >= 0 ? safeNumber(r[idxPBF])     : 0;
+      .card-header .eyebrow {
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
 
-        const Kpct_pit  = BF > 0 ? SO_pit / BF : 0;
-        const BBpct_pit = BF > 0 ? BB_pit / BF : 0;
-        const KBBpct    = Kpct_pit - BBpct_pit;
-        const Kper9     = IP > 0 ? (SO_pit * 9) / IP : 0;
-        const BBper9    = IP > 0 ? (BB_pit * 9) / IP : 0;
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-end;
+        margin-bottom: 10px;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      label {
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      input[type="text"],
+      input[type="file"],
+      select,
+      button {
+        font-family: var(--font-sans);
+      }
+
+      input[type="text"],
+      select {
+        background: rgba(15, 23, 42, 0.9);
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        color: var(--text);
+        min-width: 160px;
+      }
+
+      .btn {
+        border-radius: 999px;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        border: 1px solid var(--accent-border);
+        background: linear-gradient(135deg, var(--accent-strong), #f97316);
+        color: #0b1020;
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 10px 25px rgba(249, 115, 22, 0.45);
+        white-space: nowrap;
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--accent-text);
+        border-color: rgba(148, 163, 184, 0.7);
+        box-shadow: none;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(148, 163, 184, 0.9);
+      }
+
+      .tag span {
+        color: var(--accent-text);
+      }
+
+      .player-card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .player-initials {
+        width: 48px;
+        height: 48px;
+        border-radius: 999px;
+        border: 2px solid var(--accent-border);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(
+          circle at top left,
+          var(--accent-soft),
+          rgba(15, 23, 42, 0.95)
+        );
+        font-weight: 700;
+        font-size: 1.3rem;
+        color: var(--accent-text);
+      }
+
+      .player-basic {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .player-basic h2 {
+        margin: 0;
+        font-size: 1.4rem;
+      }
+
+      .player-basic .meta {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+
+      .pill-small {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      .pill-small strong {
+        color: var(--accent-text);
+      }
+
+      .pill-small .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .stat-blocks {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .stat-block {
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(15, 23, 42, 0.92);
+        padding: 6px 8px;
+        font-size: 0.8rem;
+      }
+
+      .stat-block-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .stat-block-value {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+
+      .stat-block-footnote {
+        font-size: 0.68rem;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .stat-block-good .stat-block-value {
+        color: var(--positive);
+      }
+
+      .stat-block-bad .stat-block-value {
+        color: var(--negative);
+      }
+
+      .subcard {
+        margin-top: 12px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(148, 163, 184, 0.35);
+      }
+
+      .subcard-title {
+        font-size: 0.8rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(148, 163, 184, 0.95);
+        margin-bottom: 6px;
+      }
+
+      .subcard-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .subcard-stat-label {
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      .subcard-stat-value {
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .subcard-stat-value.good {
+        color: var(--positive);
+      }
+
+      .subcard-stat-value.bad {
+        color: var(--negative);
+      }
+
+      .subcard-stat-value.neutral {
+        color: var(--muted);
+      }
+
+      .small-text {
+        font-size: 0.74rem;
+        color: var(--muted);
+      }
+
+      .file-input-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .file-input-row input[type="file"] {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      #loadStatus {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .placeholder {
+        font-size: 0.9rem;
+        color: var(--muted);
+        padding: 12px 0;
+      }
+
+      .chart-card {
+        margin-top: 10px;
+      }
+
+      @media (max-width: 640px) {
+        .page-header {
+          gap: 8px;
+        }
+        .page-title-block h1 {
+          font-size: 1.5rem;
+        }
+        .card {
+          padding: 12px 12px 14px;
+        }
+        .stat-blocks,
+        .subcard-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="page-header">
+        <div class="page-title-block">
+          <h1>
+            Player Explorer
+            <span class="pill"><span>AA</span> Aces Analytics</span>
+          </h1>
+          <div class="subheading">
+            Upload the same <strong>GameChanger Season Stats CSV</strong> and use
+            this to drill into a single player’s combined hitting (and pitching if
+            present) across all selected seasons.
+          </div>
+          <div id="lastUpdated" class="status-line"></div>
+        </div>
+        <div class="tag">
+          Internal · <span>&nbsp;Coaches/Parents&nbsp;</span>
+        </div>
+      </header>
+
+      <section class="layout-grid">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <div class="eyebrow">Input · Player &amp; CSV</div>
+              <h2>Search &amp; Load</h2>
+            </div>
+          </div>
+
+          <div class="controls-row">
+            <div class="control-group">
+              <label for="playerSearch">Player Name</label>
+              <input
+                type="text"
+                id="playerSearch"
+                placeholder="Start typing a name..."
+                autocomplete="off"
+              />
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <select id="playerSelect">
+                <option value="">Select player...</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="loadPlayerBtn" class="btn">Load Player</button>
+            </div>
+          </div>
+
+          <div class="file-input-row">
+            <div class="control-group">
+              <label for="csvFileInput">Season Stats CSV (Hitting + Pitching)</label>
+              <input
+                type="file"
+                id="csvFileInput"
+                accept=".csv,text/csv"
+                aria-label="Upload combined season stats CSV"
+              />
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="clearStorageBtn" class="btn btn-secondary">
+                Clear Saved CSV
+              </button>
+            </div>
+          </div>
+
+          <div id="loadStatus"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <div class="eyebrow">Output · Player Card</div>
+              <h2>Profile</h2>
+            </div>
+          </div>
+          <div id="playerCard">
+            <div class="placeholder">
+              Select a player and load stats to see a combined hitting/pitching
+              card.
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const STORAGE_KEY = "aces_player_csv_v1";
+
+      function saveSeasonCsv(text) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, text);
+        } catch (err) {
+          console.warn("Unable to save CSV to localStorage", err);
+        }
+      }
+
+      function loadSeasonCsv() {
+        try {
+          return window.localStorage.getItem(STORAGE_KEY);
+        } catch (err) {
+          console.warn("Unable to load CSV from localStorage", err);
+          return null;
+        }
+      }
+
+      function clearSeasonCsv() {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch (err) {
+          console.warn("Unable to clear CSV from localStorage", err);
+        }
+      }
+
+      function parseCsv(text) {
+        const lines = text.replace(/\r\n/g, "\n").split("\n");
+        const header = lines[0].split(",").map((h) => h.trim());
+        const rows = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const cells = [];
+          let current = "";
+          let inQuotes = false;
+          for (let char of line) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+              continue;
+            }
+            if (char === "," && !inQuotes) {
+              cells.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
+          }
+          cells.push(current);
+
+          const row = {};
+          header.forEach((key, idx) => {
+            row[key] = cells[idx] !== undefined ? cells[idx].trim() : "";
+          });
+          rows.push(row);
+        }
+        return rows;
+      }
+
+      function toNumber(value) {
+        if (value === null || value === undefined) return 0;
+        const n = Number(String(value).replace(/[^0-9.-]/g, ""));
+        return isNaN(n) ? 0 : n;
+      }
+
+      function safeGet(row, key) {
+        return row[key] ?? row[key.toLowerCase()] ?? "";
+      }
+
+      function setLoadStatus(msg) {
+        const el = document.getElementById("loadStatus");
+        if (!el) return;
+        el.textContent = msg || "";
+      }
+
+      async function fetchPlayerLastUpdated() {
+        const el = document.getElementById("lastUpdated");
+        if (!el) return;
+
+        try {
+          const res = await fetch("/api/hitting/last-updated");
+          if (!res.ok) throw new Error("HTTP " + res.status);
+
+          const data = await res.json();
+          if (!data.last_updated) {
+            el.textContent = "";
+            return;
+          }
+
+          const dt = new Date(data.last_updated);
+          if (!isNaN(dt.getTime())) {
+            el.textContent = "Stats last updated: " + dt.toLocaleString();
+          } else {
+            el.textContent = "Stats last updated: " + data.last_updated;
+          }
+        } catch (err) {
+          console.error("Error fetching player last-updated", err);
+        }
+      }
+
+      let allRows = [];
+      let playersIndex = [];
+
+      function buildPlayersIndex(rows) {
+        const map = new Map();
+        for (const row of rows) {
+          const rawName =
+            safeGet(row, "PlayerName") || safeGet(row, "Player") || "";
+          const name = rawName.trim();
+          if (!name) continue;
+
+          const key = name.toLowerCase();
+          const uniform = (safeGet(row, "Uniform") || "").trim();
+
+          const existing = map.get(key) || { name, uniforms: new Set() };
+          if (uniform) existing.uniforms.add(uniform);
+          map.set(key, existing);
+        }
+
+        playersIndex = Array.from(map.values())
+          .map((p) => ({
+            name: p.name,
+            display: p.uniforms.size
+              ? `${p.name} (#${Array.from(p.uniforms).join("/")})`
+              : p.name,
+            key: p.name.toLowerCase(),
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        const select = document.getElementById("playerSelect");
+        if (select) {
+          select.innerHTML = '<option value="">Select player...</option>';
+          playersIndex.forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = p.key;
+            opt.textContent = p.display;
+            select.appendChild(opt);
+          });
+        }
+      }
+
+      function formatAvg(value) {
+        if (!value || isNaN(value)) return "";
+        return value.toFixed(3).replace(/^0+/, "");
+      }
+
+      function formatRate(value) {
+        if (!value || isNaN(value)) return "";
+        return value.toFixed(3).replace(/^0+/, "");
+      }
+
+      function buildPlayerStats(playerKey) {
+        const hittingAgg = {
+          PA: 0,
+          AB: 0,
+          H: 0,
+          R: 0,
+          RBI: 0,
+          BB: 0,
+          SO: 0,
+          Doubles: 0,
+          Triples: 0,
+          HomeRuns: 0,
+          SB: 0,
+          TB: 0,
+        };
+
+        const pitchingAgg = {
+          IP: 0,
+          ER: 0,
+          H: 0,
+          BB: 0,
+          SO: 0,
+        };
+
+        let displayName = "";
+        const uniforms = new Set();
+
+        for (const row of allRows) {
+          const rawName =
+            safeGet(row, "PlayerName") || safeGet(row, "Player") || "";
+          const name = rawName.trim();
+          if (!name) continue;
+          if (name.toLowerCase() !== playerKey) continue;
+
+          displayName = name;
+          const uniform = (safeGet(row, "Uniform") || "").trim();
+          if (uniform) uniforms.add(uniform);
+
+          const ab = toNumber(safeGet(row, "AB"));
+          const h = toNumber(safeGet(row, "H"));
+          const r = toNumber(safeGet(row, "R"));
+          const rbi = toNumber(safeGet(row, "RBI"));
+          const bb = toNumber(safeGet(row, "BB"));
+          const so = toNumber(safeGet(row, "SO"));
+          const doubles = toNumber(safeGet(row, "Doubles"));
+          const triples = toNumber(safeGet(row, "Triples"));
+          const hr = toNumber(safeGet(row, "HomeRuns"));
+          const sb = toNumber(safeGet(row, "SB"));
+          const tb = toNumber(safeGet(row, "TB"));
+
+          const pa = toNumber(safeGet(row, "PA")) || ab + bb;
+
+          hittingAgg.PA += pa;
+          hittingAgg.AB += ab;
+          hittingAgg.H += h;
+          hittingAgg.R += r;
+          hittingAgg.RBI += rbi;
+          hittingAgg.BB += bb;
+          hittingAgg.SO += so;
+          hittingAgg.Doubles += doubles;
+          hittingAgg.Triples += triples;
+          hittingAgg.HomeRuns += hr;
+          hittingAgg.SB += sb;
+          hittingAgg.TB += tb;
+
+          const ip = toNumber(safeGet(row, "IP"));
+          const er = toNumber(safeGet(row, "ER"));
+          const ph = toNumber(safeGet(row, "PitchingH") || safeGet(row, "H"));
+          const pbb = toNumber(safeGet(row, "PitchingBB") || safeGet(row, "BB"));
+          const pso = toNumber(safeGet(row, "PitchingSO") || safeGet(row, "SO"));
+
+          pitchingAgg.IP += ip;
+          pitchingAgg.ER += er;
+          pitchingAgg.H += ph;
+          pitchingAgg.BB += pbb;
+          pitchingAgg.SO += pso;
+        }
+
+        const singleCount = Math.max(
+          0,
+          hittingAgg.H -
+            hittingAgg.Doubles -
+            hittingAgg.Triples -
+            hittingAgg.HomeRuns
+        );
+        const computedTB =
+          singleCount +
+          2 * hittingAgg.Doubles +
+          3 * hittingAgg.Triples +
+          4 * hittingAgg.HomeRuns;
+        if (hittingAgg.TB === 0 && computedTB > 0) {
+          hittingAgg.TB = computedTB;
+        }
+
+        const avg =
+          hittingAgg.AB > 0 ? hittingAgg.H / hittingAgg.AB : 0;
+        const obp =
+          hittingAgg.PA > 0
+            ? (hittingAgg.H + hittingAgg.BB) / hittingAgg.PA
+            : 0;
+        const slg =
+          hittingAgg.AB > 0 ? hittingAgg.TB / hittingAgg.AB : 0;
+        const ops = obp + slg;
+
+        const ip = pitchingAgg.IP;
+        const era = ip > 0 ? (pitchingAgg.ER * 9) / ip : 0;
+        const whip =
+          ip > 0 ? (pitchingAgg.BB + pitchingAgg.H) / ip : 0;
+        const kper9 = ip > 0 ? (pitchingAgg.SO * 9) / ip : 0;
+        const bbper9 = ip > 0 ? (pitchingAgg.BB * 9) / ip : 0;
 
         return {
-          name,
-          number,
-          GP_hit, PA, AB, H, _1B, _2B, _3B, HR_hit, RBI, R_hit,
-          BB_hit, SO_hit, HBP_hit, SAC, SF, SB, SBpct,
-          AVG, OBP, SLG, OPS, ISO, BBpct, Kpct,
-          GP_pit, GS_pit, IP, BF, pitches,
-          W, L, SV, H_pit, R_pit, ER, BB_pit, SO_pit, HBP_pit,
-          ERA, WHIP, BAA, FIP, KBF, PIP, PBF,
-          Kpct_pit, BBpct_pit, KBBpct, Kper9, BBper9
-        };
-      });
-
-      return result;
-    }
-
-    // ---------- Multi-season merge by NAME ----------
-    function mergePlayerArrays(listOfArrays) {
-      const map = new Map();
-
-      listOfArrays.forEach(arr => {
-        (arr || []).forEach(p => {
-          const key = (p.name || "").trim().toLowerCase();
-          if (!key) return;
-
-          let agg = map.get(key);
-          if (!agg) {
-            agg = {
-              name: p.name,
-              number: p.number,
-
-              // Hitting totals
-              GP_hit: 0, PA: 0, AB: 0, H: 0,
-              _1B: 0, _2B: 0, _3B: 0, HR_hit: 0,
-              RBI: 0, R_hit: 0, BB_hit: 0, SO_hit: 0,
-              HBP_hit: 0, SAC: 0, SF: 0, SB: 0,
-
-              // Pitching totals
-              GP_pit: 0, GS_pit: 0, IP: 0, BF: 0, pitches: 0,
-              W: 0, L: 0, SV: 0, H_pit: 0, R_pit: 0, ER: 0,
-              BB_pit: 0, SO_pit: 0, HBP_pit: 0
-            };
-            map.set(key, agg);
-          } else {
-            // Prefer jersey from season with more PA (rough proxy)
-            if (p.number && p.number !== agg.number) {
-              if (p.PA > agg.PA) {
-                agg.number = p.number;
-              }
-            }
-          }
-
-          // Add hitting
-          agg.GP_hit  += safeNumber(p.GP_hit);
-          agg.PA      += safeNumber(p.PA);
-          agg.AB      += safeNumber(p.AB);
-          agg.H       += safeNumber(p.H);
-          agg._1B     += safeNumber(p._1B);
-          agg._2B     += safeNumber(p._2B);
-          agg._3B     += safeNumber(p._3B);
-          agg.HR_hit  += safeNumber(p.HR_hit);
-          agg.RBI     += safeNumber(p.RBI);
-          agg.R_hit   += safeNumber(p.R_hit);
-          agg.BB_hit  += safeNumber(p.BB_hit);
-          agg.SO_hit  += safeNumber(p.SO_hit);
-          agg.HBP_hit += safeNumber(p.HBP_hit);
-          agg.SAC     += safeNumber(p.SAC);
-          agg.SF      += safeNumber(p.SF);
-          agg.SB      += safeNumber(p.SB);
-
-          // Add pitching
-          agg.GP_pit  += safeNumber(p.GP_pit);
-          agg.GS_pit  += safeNumber(p.GS_pit);
-          agg.IP      += safeNumber(p.IP);
-          agg.BF      += safeNumber(p.BF);
-          agg.pitches += safeNumber(p.pitches);
-          agg.W       += safeNumber(p.W);
-          agg.L       += safeNumber(p.L);
-          agg.SV      += safeNumber(p.SV);
-          agg.H_pit   += safeNumber(p.H_pit);
-          agg.R_pit   += safeNumber(p.R_pit);
-          agg.ER      += safeNumber(p.ER);
-          agg.BB_pit  += safeNumber(p.BB_pit);
-          agg.SO_pit  += safeNumber(p.SO_pit);
-          agg.HBP_pit += safeNumber(p.HBP_pit);
-        });
-      });
-
-      const merged = [];
-      for (const agg of map.values()) {
-        // Recompute hitting metrics from totals
-        const singles = Math.max(0, agg.H - agg._2B - agg._3B - agg.HR_hit);
-        const TB = singles + 2 * agg._2B + 3 * agg._3B + 4 * agg.HR_hit;
-
-        let AVG = 0, OBP = 0, SLG = 0, OPS = 0, ISO = 0;
-        if (agg.AB > 0) {
-          AVG = agg.H / agg.AB;
-          SLG = TB / agg.AB;
-        }
-        const obpDen = agg.AB + agg.BB_hit + agg.HBP_hit + agg.SF;
-        if (obpDen > 0) {
-          OBP = (agg.H + agg.BB_hit + agg.HBP_hit) / obpDen;
-        }
-        OPS = OBP + SLG;
-        ISO = SLG - AVG;
-
-        const BBpct = agg.PA > 0 ? agg.BB_hit / agg.PA : 0;
-        const Kpct  = agg.PA > 0 ? agg.SO_hit / agg.PA : 0;
-
-        // Recompute pitching metrics from totals
-        const IP = agg.IP;
-        let ERA = 0, WHIP = 0, Kper9 = 0, BBper9 = 0;
-        if (IP > 0) {
-          ERA   = (agg.ER * 7) / IP;
-          WHIP  = (agg.BB_pit + agg.H_pit) / IP;
-          Kper9 = (agg.SO_pit * 9) / IP;
-          BBper9= (agg.BB_pit * 9) / IP;
-        }
-
-        const BF = agg.BF;
-        const Kpct_pit  = BF > 0 ? agg.SO_pit / BF : 0;
-        const BBpct_pit = BF > 0 ? agg.BB_pit / BF : 0;
-        const KBBpct    = Kpct_pit - BBpct_pit;
-
-        // Some advanced metrics we don't recompute across seasons → show "-"
-        const BAA = 0;
-        const FIP = 0;
-        const KBF = 0;
-        const PIP = (IP > 0 && agg.pitches) ? (agg.pitches / IP) : 0;
-        const PBF = (BF > 0 && agg.pitches) ? (agg.pitches / BF) : 0;
-
-        merged.push({
-          name: agg.name,
-          number: agg.number,
-
-          GP_hit: agg.GP_hit,
-          PA: agg.PA,
-          AB: agg.AB,
-          H: agg.H,
-          _1B: agg._1B,
-          _2B: agg._2B,
-          _3B: agg._3B,
-          HR_hit: agg.HR_hit,
-          RBI: agg.RBI,
-          R_hit: agg.R_hit,
-          BB_hit: agg.BB_hit,
-          SO_hit: agg.SO_hit,
-          HBP_hit: agg.HBP_hit,
-          SAC: agg.SAC,
-          SF: agg.SF,
-          SB: agg.SB,
-          SBpct: 0, // can't accurately recompute across seasons; show "-" in UI
-
-          AVG, OBP, SLG, OPS, ISO, BBpct, Kpct,
-
-          GP_pit: agg.GP_pit,
-          GS_pit: agg.GS_pit,
-          IP: agg.IP,
-          BF: agg.BF,
-          pitches: agg.pitches,
-          W: agg.W,
-          L: agg.L,
-          SV: agg.SV,
-          H_pit: agg.H_pit,
-          R_pit: agg.R_pit,
-          ER: agg.ER,
-          BB_pit: agg.BB_pit,
-          SO_pit: agg.SO_pit,
-          HBP_pit: agg.HBP_pit,
-
-          ERA, WHIP, BAA, FIP, KBF, PIP, PBF,
-          Kpct_pit, BBpct_pit, KBBpct, Kper9, BBper9
-        });
-      }
-
-      return merged;
-    }
-
-    // ---------- Badges ----------
-    function getBadges(p) {
-      const badges = [];
-
-      if (p.PA >= 25) {
-        if (p.OPS >= 1.200) {
-          badges.push({ label: "Elite bat", cls: "hot" });
-        } else if (p.OPS >= 0.900) {
-          badges.push({ label: "Impact hitter", cls: "good" });
-        } else if (p.OPS <= 0.650) {
-          badges.push({ label: "Developing bat", cls: "warn" });
-        }
-      }
-
-      if (p.ISO >= 0.250 && p.AVG >= 0.300) {
-        badges.push({ label: "Power & average", cls: "hot" });
-      } else if (p.ISO >= 0.200) {
-        badges.push({ label: "Gap power", cls: "good" });
-      } else if (p.AVG >= 0.400) {
-        badges.push({ label: "High contact", cls: "good" });
-      }
-
-      if (p.PA >= 25) {
-        if (p.BBpct >= 0.15) badges.push({ label: "Walk machine", cls: "good" });
-        if (p.Kpct <= 0.10)  badges.push({ label: "Tough to K", cls: "good" });
-        if (p.Kpct >= 0.30)  badges.push({ label: "Elevated K%", cls: "warn" });
-      }
-
-      if (p.SB >= 5 && p.SBpct >= 75) {
-        badges.push({ label: "Base threat", cls: "hot" });
-      }
-
-      if (p.IP >= 5) {
-        if (p.ERA <= 3.00 && p.WHIP <= 1.20) {
-          badges.push({ label: "Ace-level arm", cls: "hot" });
-        } else if (p.ERA <= 4.50) {
-          badges.push({ label: "Reliable arm", cls: "good" });
-        }
-        if (p.KBBpct >= 0.15) {
-          badges.push({ label: "Strikeout pitcher", cls: "good" });
-        }
-      }
-
-      return badges;
-    }
-
-    // ---------- Rendering ----------
-    function renderPlayerCard(p) {
-      const container = document.getElementById("playerContent");
-      if (!p) {
-        container.innerHTML = '<div class="empty-state">Select a player to view their card.</div>';
-        return;
-      }
-
-      const badges = getBadges(p);
-      const hasPitching = p.IP > 0 || p.BF > 0;
-
-      container.innerHTML = `
-        <div class="player-header-main">
-          <div class="player-name-block">
-            <div class="player-name">${p.name || "Unknown Player"}</div>
-            <div class="player-meta">
-              ${p.GP_hit || 0} GP | ${p.PA || 0} PA | 
-              ${hasPitching ? `${formatIP(p.IP)} IP pitched` : "Position player"}
-            </div>
-          </div>
-          <div class="jersey-pill">
-            <div class="jersey-number">${p.number || "-"}</div>
-            <div class="jersey-label">JERSEY</div>
-          </div>
-        </div>
-
-        <div class="badge-row">
-          ${badges.map(b => `<span class="badge ${b.cls}">${b.label}</span>`).join("") || '<span class="badge">No tags yet – needs more reps.</span>'}
-        </div>
-
-        <div class="section-label">Hitting Summary</div>
-        <div class="metrics-grid">
-          <div class="metric-tile">
-            <div class="metric-label">AVG</div>
-            <div class="metric-value">${formatAvg(p.AVG)}</div>
-            <div class="metric-small">OBP ${format3(p.OBP)}</div>
-          </div>
-          <div class="metric-tile">
-            <div class="metric-label">SLG / OPS</div>
-            <div class="metric-value">${format3(p.SLG)}</div>
-            <div class="metric-small">OPS ${format3(p.OPS)}</div>
-          </div>
-          <div class="metric-tile">
-            <div class="metric-label">POWER (ISO)</div>
-            <div class="metric-value">${format3(p.ISO)}</div>
-            <div class="metric-small">XBH: ${p._2B + p._3B + p.HR_hit}</div>
-          </div>
-          <div class="metric-tile">
-            <div class="metric-label">DISCIPLINE</div>
-            <div class="metric-value">${formatPct(p.BBpct)} BB%</div>
-            <div class="metric-small">${formatPct(p.Kpct)} K%</div>
-          </div>
-        </div>
-
-        <div class="stat-row" style="margin-top:8px;">
-          <div><span class="stat-label">GP:</span> <span class="stat-val">${p.GP_hit}</span></div>
-          <div><span class="stat-label">AB:</span> <span class="stat-val">${p.AB}</span></div>
-          <div><span class="stat-label">H:</span> <span class="stat-val">${p.H}</span></div>
-          <div><span class="stat-label">1B / 2B / 3B / HR:</span> <span class="stat-val">${p._1B}/${p._2B}/${p._3B}/${p.HR_hit}</span></div>
-        </div>
-        <div class="stat-row">
-          <div><span class="stat-label">R:</span> <span class="stat-val">${p.R_hit}</span></div>
-          <div><span class="stat-label">RBI:</span> <span class="stat-val">${p.RBI}</span></div>
-          <div><span class="stat-label">BB:</span> <span class="stat-val">${p.BB_hit}</span></div>
-          <div><span class="stat-label">SO:</span> <span class="stat-val">${p.SO_hit}</span></div>
-        </div>
-        <div class="stat-row">
-          <div><span class="stat-label">HBP:</span> <span class="stat-val">${p.HBP_hit}</span></div>
-          <div><span class="stat-label">SAC / SF:</span> <span class="stat-val">${p.SAC}/${p.SF}</span></div>
-          <div><span class="stat-label">SB:</span> <span class="stat-val">${p.SB}</span></div>
-          <div><span class="stat-label">SB%:</span> <span class="stat-val">${p.SBpct ? p.SBpct.toFixed(1) + "%" : "-"}</span></div>
-        </div>
-
-        <div class="section-label" style="margin-top:12px;">Pitching Summary</div>
-        ${
-          hasPitching
-          ? `
-            <div class="metrics-grid">
-              <div class="metric-tile">
-                <div class="metric-label">ERA (7 inn)</div>
-                <div class="metric-value">${p.ERA ? p.ERA.toFixed(2) : "-"}</div>
-                <div class="metric-small">WHIP ${p.WHIP ? p.WHIP.toFixed(2) : "-"}</div>
-              </div>
-              <div class="metric-tile">
-                <div class="metric-label">WORKLOAD</div>
-                <div class="metric-value">${formatIP(p.IP)} IP</div>
-                <div class="metric-small">${p.GP_pit} GP / ${p.GS_pit} GS</div>
-              </div>
-              <div class="metric-tile">
-                <div class="metric-label">STRIKEOUTS</div>
-                <div class="metric-value">${p.SO_pit}</div>
-                <div class="metric-small">${formatPct(p.Kpct_pit)} K% | ${p.Kper9.toFixed(1)} K/9</div>
-              </div>
-              <div class="metric-tile">
-                <div class="metric-label">CONTROL</div>
-                <div class="metric-value">${p.BB_pit}</div>
-                <div class="metric-small">${formatPct(p.BBpct_pit)} BB% | ${p.BBper9.toFixed(1)} BB/9</div>
-              </div>
-            </div>
-            <div class="stat-row" style="margin-top:8px;">
-              <div><span class="stat-label">BF:</span> <span class="stat-val">${p.BF}</span></div>
-              <div><span class="stat-label">H / R / ER:</span> <span class="stat-val">${p.H_pit}/${p.R_pit}/${p.ER}</span></div>
-              <div><span class="stat-label">FIP:</span> <span class="stat-val">${p.FIP ? p.FIP.toFixed(2) : "-"}</span></div>
-              <div><span class="stat-label">P/IP:</span> <span class="stat-val">${p.PIP ? p.PIP.toFixed(1) : "-"}</span></div>
-            </div>
-          `
-          : `<div class="empty-state">No pitching data for this player in the selected seasons.</div>`
-        }
-      `;
-    }
-
-    function renderHittingChart(p) {
-      const chartStatus = document.getElementById("chartStatus");
-      const ctx = document.getElementById("hittingChart").getContext("2d");
-
-      if (!p || !p.PA || p.PA === 0) {
-        chartStatus.textContent = "Chart will appear once a player with hitting stats is selected.";
-        if (hittingChart) hittingChart.destroy();
-        return;
-      }
-
-      const labels = ["AVG", "OBP", "SLG", "OPS"];
-      const values = [p.AVG, p.OBP, p.SLG, p.OPS];
-
-      if (hittingChart) hittingChart.destroy();
-
-      hittingChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Hitting Profile",
-            data: values
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              ticks: { color: "#d2d6f0" },
-              grid: { display: false }
-            },
-            y: {
-              beginAtZero: true,
-              ticks: { color: "#d2d6f0" },
-              grid: { color: "rgba(255,255,255,0.06)" }
-            }
+          displayName,
+          uniforms: Array.from(uniforms),
+          hitting: {
+            ...hittingAgg,
+            AVG: avg,
+            OBP: obp,
+            SLG: slg,
+            OPS: ops,
           },
-          plugins: {
-            legend: { labels: { color: "#d2d6f0" } },
-            tooltip: {
-              callbacks: {
-                label: ctx => ` ${ctx.label}: ${ctx.parsed.y.toFixed(3)}`
-              }
-            }
-          }
-        }
-      });
-
-      chartStatus.textContent = `Profile based on selected seasons (${p.PA} PA).`;
-    }
-
-    // ---------- Player selection ----------
-    function populatePlayerSelect() {
-      const select = document.getElementById("playerSelect");
-      select.innerHTML = '<option value="">Select player...</option>';
-
-      players.forEach(p => {
-        const opt = document.createElement("option");
-        opt.value = p.name;
-        opt.textContent = p.name;
-        select.appendChild(opt);
-      });
-
-      select.disabled = players.length === 0;
-    }
-
-    function selectPlayerByName(name) {
-      if (!name) return;
-      const lower = name.toLowerCase();
-      const match = players.find(p => p.name.toLowerCase() === lower)
-        || players.find(p => p.name.toLowerCase().includes(lower));
-      if (match) {
-        selectedPlayer = match;
-        document.getElementById("playerSelect").value = match.name;
-        renderPlayerCard(match);
-        renderHittingChart(match);
-        const printBtn = document.getElementById("printBtn");
-        if (printBtn) printBtn.disabled = false;
+          pitching: {
+            ...pitchingAgg,
+            ERA: era,
+            WHIP: whip,
+            Kper9: kper9,
+            BBper9: bbper9,
+          },
+        };
       }
-    }
 
-    // ---------- CSV handling (manual single-season) ----------
-    function parseSeasonCsvText(csvText, opts = {}) {
-      const statusEl = document.getElementById("loadStatus");
-      statusEl.textContent = "Parsing CSV...";
+      function renderPlayerCard(stats) {
+        const container = document.getElementById("playerCard");
+        if (!container) return;
 
-      Papa.parse(csvText, {
-        header: false,
-        dynamicTyping: false,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const rows = results.data;
-          if (!rows || rows.length < 3) {
-            alert("CSV looks too short to be a GameChanger Season Stats export.");
-            statusEl.textContent = "Failed to parse CSV.";
-            return;
-          }
-
-          // Single-season path: just parse and use directly
-          players = parseSeasonStats(rows);
-          if (!players.length) {
-            statusEl.textContent = "No player rows found.";
-            return;
-          }
-
-          populatePlayerSelect();
-
-          const nameParam = getQueryParam("name");
-          if (nameParam) {
-            selectPlayerByName(nameParam);
-            statusEl.textContent = `Loaded ${players.length} players from ${opts.fromStorage ? "cached" : "uploaded"} CSV. Showing: ${nameParam}.`;
-          } else {
-            selectedPlayer = players[0];
-            document.getElementById("playerSelect").value = selectedPlayer.name;
-            renderPlayerCard(selectedPlayer);
-            renderHittingChart(selectedPlayer);
-            statusEl.textContent = `Loaded ${players.length} players from ${opts.fromStorage ? "cached" : "uploaded"} CSV.`;
-            const printBtn = document.getElementById("printBtn");
-            if (printBtn) printBtn.disabled = false;
-          }
-        },
-        error: (err) => {
-          console.error(err);
-          alert("Error parsing CSV: " + err.message);
-          statusEl.textContent = "Error parsing CSV.";
-        }
-      });
-    }
-
-    function handleCsv(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target.result;
-        saveSeasonCsv(text);
-        parseSeasonCsvText(text, { fromStorage: false });
-      };
-      reader.readAsText(file);
-    }
-
-    // ---------- API: seasons + multi-season load ----------
-    async function fetchHittingSeasons() {
-      const statusEl = document.getElementById("loadStatus");
-      const select = document.getElementById("seasonSelect");
-      try {
-        statusEl.textContent = "Loading hitting seasons from server...";
-        const res = await fetch("/api/hitting/seasons");
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        const seasons = await res.json(); // [{id,label}]
-
-        select.innerHTML = "";
-        if (!seasons || !seasons.length) {
-          statusEl.textContent = "Server returned no hitting seasons. You can still upload a CSV manually.";
+        if (!stats || !stats.displayName) {
+          container.innerHTML =
+            '<div class="placeholder">No stats found for this player in the loaded CSV.</div>';
           return;
         }
 
-        seasons.forEach((s, idx) => {
+        const initials = stats.displayName
+          .split(" ")
+          .map((p) => p[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+
+        const uniformText =
+          stats.uniforms && stats.uniforms.length
+            ? "#" + stats.uniforms.join("/")
+            : "N/A";
+
+        const h = stats.hitting;
+        const p = stats.pitching;
+
+        const hittingSlash = `${formatAvg(h.AVG)} / ${formatRate(
+          h.OBP
+        )} / ${formatRate(h.SLG)} (OPS ${formatRate(h.OPS)})`;
+
+        const pitchingLine =
+          p.IP > 0
+            ? `${p.IP.toFixed(1)} IP · ${p.ERA.toFixed(2)} ERA · ${p.WHIP.toFixed(
+                2
+              )} WHIP`
+            : "No pitching data";
+
+        container.innerHTML = `
+      <div class="player-card-header">
+        <div class="player-initials">${initials}</div>
+        <div class="player-basic">
+          <h2>${stats.displayName}</h2>
+          <div class="meta">
+            Uniform: <strong>${uniformText}</strong>
+            ${
+              h.PA > 0
+                ? ` · ${h.PA} PA`
+                : ""
+            }
+          </div>
+          <div class="pill-row">
+            <div class="pill-small">
+              <span class="dot"></span>
+              <span><strong>Slash:</strong> ${hittingSlash}</span>
+            </div>
+            <div class="pill-small">
+              <span class="dot"></span>
+              <span><strong>Pitching:</strong> ${pitchingLine}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-blocks">
+        <div class="stat-block stat-block-good">
+          <div class="stat-block-label">OPS</div>
+          <div class="stat-block-value">${formatRate(h.OPS)}</div>
+          <div class="stat-block-footnote">OBP + SLG</div>
+        </div>
+        <div class="stat-block stat-block-good">
+          <div class="stat-block-label">AVG</div>
+          <div class="stat-block-value">${formatAvg(h.AVG)}</div>
+          <div class="stat-block-footnote">${h.H} H / ${h.AB} AB</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">RBI</div>
+          <div class="stat-block-value">${h.RBI}</div>
+          <div class="stat-block-footnote">Total Runs Batted In</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">Runs</div>
+          <div class="stat-block-value">${h.R}</div>
+          <div class="stat-block-footnote">Total Runs Scored</div>
+        </div>
+
+        <div class="stat-block">
+          <div class="stat-block-label">XBH</div>
+          <div class="stat-block-value">
+            ${h.Doubles + h.Triples + h.HomeRuns}
+          </div>
+          <div class="stat-block-footnote">
+            ${h.Doubles} 2B · ${h.Triples} 3B · ${h.HomeRuns} HR
+          </div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">BB / K</div>
+          <div class="stat-block-value">${h.BB} / ${h.SO}</div>
+          <div class="stat-block-footnote">Walks / Strikeouts</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">SB</div>
+          <div class="stat-block-value">${h.SB}</div>
+          <div class="stat-block-footnote">Stolen Bases</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">TB</div>
+          <div class="stat-block-value">${h.TB}</div>
+          <div class="stat-block-footnote">Total Bases (computed)</div>
+        </div>
+      </div>
+
+      <div class="subcard">
+        <div class="subcard-title">Pitching Snapshot</div>
+        <div class="subcard-grid">
+          <div>
+            <div class="subcard-stat-label">IP</div>
+            <div class="subcard-stat-value neutral">${p.IP.toFixed(1)}</div>
+          </div>
+          <div>
+            <div class="subcard-stat-label">ERA</div>
+            <div class="subcard-stat-value ${
+              p.IP > 0 ? "good" : "neutral"
+            }">${p.ERA.toFixed(2)}</div>
+          </div>
+          <div>
+            <div class="subcard-stat-label">WHIP</div>
+            <div class="subcard-stat-value ${
+              p.IP > 0 ? "good" : "neutral"
+            }">${p.WHIP.toFixed(2)}</div>
+          </div>
+          <div>
+            <div class="subcard-stat-label">K/9</div>
+            <div class="subcard-stat-value ${
+              p.IP > 0 ? "good" : "neutral"
+            }">${p.Kper9.toFixed(2)}</div>
+          </div>
+          <div>
+            <div class="subcard-stat-label">BB/9</div>
+            <div class="subcard-stat-value ${
+              p.IP > 0 ? "bad" : "neutral"
+            }">${p.BBper9.toFixed(2)}</div>
+          </div>
+          <div>
+            <div class="subcard-stat-label">H</div>
+            <div class="subcard-stat-value bad">${p.H}</div>
+          </div>
+          <div>
+            <div class="subcard-stat-label">BB</div>
+            <div class="subcard-stat-value bad">${p.BB}</div>
+          </div>
+          <div>
+            <div class="subcard-stat-label">K</div>
+            <div class="subcard-stat-value good">${p.SO}</div>
+          </div>
+        </div>
+      </div>
+    `;
+      }
+
+      function handleCsvFileChange(evt) {
+        const fileInput = evt.target;
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          if (!text) {
+            setLoadStatus("Uploaded file is empty.");
+            return;
+          }
+          saveSeasonCsv(text);
+          setLoadStatus("Loaded CSV into memory. Build the player index and search.");
+          allRows = parseCsv(text);
+          buildPlayersIndex(allRows);
+        };
+        reader.readAsText(file);
+      }
+
+      function handleClearStorageClick() {
+        clearSeasonCsv();
+        setLoadStatus("Cleared locally cached CSV.");
+        allRows = [];
+        playersIndex = [];
+        const select = document.getElementById("playerSelect");
+        if (select) {
+          select.innerHTML = '<option value="">Select player...</option>';
+        }
+        const card = document.getElementById("playerCard");
+        if (card) {
+          card.innerHTML =
+            '<div class="placeholder">Select a player and load stats to see a combined hitting/pitching card.</div>';
+        }
+      }
+
+      function handleLoadPlayerClick() {
+        const select = document.getElementById("playerSelect");
+        if (!select) return;
+        const key = select.value;
+        if (!key) {
+          setLoadStatus("Select a player first.");
+          return;
+        }
+        if (!allRows || !allRows.length) {
+          setLoadStatus("No CSV loaded. Upload a season stats CSV first.");
+          return;
+        }
+        const stats = buildPlayerStats(key);
+        renderPlayerCard(stats);
+        setLoadStatus("");
+      }
+
+      function handlePlayerSearchInput(evt) {
+        const term = (evt.target.value || "").toLowerCase();
+        const select = document.getElementById("playerSelect");
+        if (!select) return;
+
+        if (!term) {
+          select.innerHTML = '<option value="">Select player...</option>';
+          playersIndex.forEach((p) => {
+            const opt = document.createElement("option");
+            opt.value = p.key;
+            opt.textContent = p.display;
+            select.appendChild(opt);
+          });
+          return;
+        }
+
+        const filtered = playersIndex.filter((p) =>
+          p.name.toLowerCase().includes(term)
+        );
+
+        select.innerHTML = '<option value="">Select player...</option>';
+        filtered.forEach((p) => {
           const opt = document.createElement("option");
-          opt.value = s.id;
-          opt.textContent = s.label || s.id;
-          if (idx === 0) opt.selected = true;
+          opt.value = p.key;
+          opt.textContent = p.display;
           select.appendChild(opt);
         });
-
-        statusEl.textContent = "Select one or more seasons and click Apply, or upload a CSV.";
-      } catch (err) {
-        console.error("Error loading hitting seasons", err);
-        statusEl.textContent = "Could not load hitting seasons from server. You can still upload a CSV manually.";
       }
-    }
 
-    function getSelectedSeasonIds() {
-      const select = document.getElementById("seasonSelect");
-      const ids = [];
-      for (const opt of select.options) {
-        if (opt.selected) ids.push(opt.value);
-      }
-      return ids;
-    }
+      document.addEventListener("DOMContentLoaded", () => {
+        const cached = loadSeasonCsv();
+        if (cached) {
+          allRows = parseCsv(cached);
+          buildPlayersIndex(allRows);
+          setLoadStatus("Loaded CSV from localStorage cache.");
+        }
 
-    async function fetchHittingCsvRows(seasonId) {
-      const res = await fetch(`/api/hitting/csv/${encodeURIComponent(seasonId)}`);
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} for season ${seasonId}`);
-      }
-      const text = await res.text();
-      return await new Promise((resolve, reject) => {
-        Papa.parse(text, {
-          header: false,
-          dynamicTyping: false,
-          skipEmptyLines: true,
-          complete: r => resolve(r.data),
-          error: err => reject(err)
-        });
+        const fileInput = document.getElementById("csvFileInput");
+        if (fileInput) {
+          fileInput.addEventListener("change", handleCsvFileChange);
+        }
+
+        const clearBtn = document.getElementById("clearStorageBtn");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", handleClearStorageClick);
+        }
+
+        const loadPlayerBtn = document.getElementById("loadPlayerBtn");
+        if (loadPlayerBtn) {
+          loadPlayerBtn.addEventListener("click", handleLoadPlayerClick);
+        }
+
+        const searchInput = document.getElementById("playerSearch");
+        if (searchInput) {
+          searchInput.addEventListener("input", handlePlayerSearchInput);
+        }
+
+        fetchPlayerLastUpdated();
       });
-    }
-
-    async function loadPlayersFromApi() {
-      const statusEl = document.getElementById("loadStatus");
-      const ids = getSelectedSeasonIds();
-      if (!ids.length) {
-        statusEl.textContent = "No seasons selected. Select one or more seasons, then click Apply.";
-        return;
-      }
-
-      statusEl.textContent = "Loading player data from selected seasons...";
-      try {
-        const perSeasonArrays = [];
-        for (const id of ids) {
-          const rows = await fetchHittingCsvRows(id);
-          const perSeasonPlayers = parseSeasonStats(rows);
-          perSeasonArrays.push(perSeasonPlayers);
-        }
-
-        players = mergePlayerArrays(perSeasonArrays);
-        if (!players.length) {
-          statusEl.textContent = "No player rows found in selected seasons.";
-          renderPlayerCard(null);
-          renderHittingChart(null);
-          return;
-        }
-
-        populatePlayerSelect();
-
-        const nameParam = getQueryParam("name");
-        if (nameParam) {
-          selectPlayerByName(nameParam);
-          statusEl.textContent = `Loaded ${players.length} players from ${ids.length} season(s) via server. Showing: ${nameParam}.`;
-        } else {
-          selectedPlayer = players[0];
-          document.getElementById("playerSelect").value = selectedPlayer.name;
-          renderPlayerCard(selectedPlayer);
-          renderHittingChart(selectedPlayer);
-          statusEl.textContent = `Loaded ${players.length} players from ${ids.length} season(s) via server.`;
-          const printBtn = document.getElementById("printBtn");
-          if (printBtn) printBtn.disabled = false;
-        }
-      } catch (err) {
-        console.error("Error loading multi-season player data", err);
-        statusEl.textContent = "Error loading data from server. Check console or upload a CSV manually.";
-      }
-    }
-
-    // ---------- Event listeners ----------
-    document.getElementById("csvFile").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      handleCsv(file);
-    });
-
-    document.getElementById("playerSelect").addEventListener("change", (e) => {
-      const name = e.target.value;
-      if (!name) return;
-      selectPlayerByName(name);
-    });
-
-    const printBtn = document.getElementById("printBtn");
-    if (printBtn) {
-      printBtn.addEventListener("click", () => {
-        window.print();
-      });
-    }
-
-    document.getElementById("applySeasons").addEventListener("click", () => {
-      loadPlayersFromApi();
-    });
-
-    // On page load: load seasons list + optional cached single-season CSV
-    document.addEventListener("DOMContentLoaded", () => {
-      fetchHittingSeasons();
-
-      const cached = loadSeasonCsv();
-      if (cached) {
-        parseSeasonCsvText(cached, { fromStorage: true });
-      }
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>

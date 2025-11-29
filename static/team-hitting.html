@@ -1,1172 +1,1413 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Aces Analytics – Team Hitting</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aces Analytics – Team Hitting</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --bg: #050814;
+        --bg-alt: #0b1020;
+        --bg-card: #13192b;
+        --accent: #ff8a3d;
+        --accent-soft: rgba(255, 138, 61, 0.15);
+        --accent-strong: rgba(255, 138, 61, 0.32);
+        --accent-border: rgba(255, 138, 61, 0.5);
+        --accent-text: #ffd9b7;
+        --text: #f8fafc;
+        --muted: #8b9bbf;
+        --border-subtle: rgba(148, 163, 184, 0.18);
+        --border-strong: rgba(148, 163, 184, 0.28);
+        --positive: #2dd4bf;
+        --negative: #f97373;
+        --warning: #facc15;
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.85);
+        --shadow-subtle: 0 14px 35px rgba(15, 23, 42, 0.65);
+        --chip-bg: rgba(15, 23, 42, 0.9);
+        --chip-border: rgba(148, 163, 184, 0.5);
+      }
 
-  <style>
-    :root {
-      --bg: #0b0c10;
-      --bg-card: #151821;
-      --accent: #ff7a00;
-      --accent-soft: rgba(255, 122, 0, 0.2);
-      --text: #f5f5f5;
-      --muted: #98a0c0;
-      --border-subtle: rgba(255, 255, 255, 0.06);
-      --danger: #ff4b5c;
-      --success: #22c55e;
-    }
+      * {
+        box-sizing: border-box;
+      }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top left, #1e293b 0, #020617 42%);
+        color: var(--text);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        line-height: 1.5;
+      }
 
-    body {
-      background: radial-gradient(circle at top, #151821 0, #05060a 55%);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      padding: 16px;
-      min-height: 100vh;
-    }
+      main {
+        max-width: 1200px;
+        margin: 24px auto 48px;
+        padding: 0 16px 16px;
+      }
 
-    main {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+      .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      gap: 12px;
-    }
+      .page-title-block {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .brand-logo {
-      width: 36px;
-      height: 36px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 0, #ffe6cc 0, #ff7a00 35%, #3b1c09 70%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-weight: 800;
-      font-size: 18px;
-      box-shadow: 0 0 20px rgba(255, 122, 0, 0.45);
-    }
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .brand-title {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
-    .brand-subtitle {
-      font-size: 11px;
-      color: var(--muted);
-    }
+      h1 {
+        margin: 0;
+        font-size: 1.9rem;
+        letter-spacing: 0.03em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .nav-tabs {
-      display: inline-flex;
-      background: rgba(14, 15, 25, 0.9);
-      border-radius: 999px;
-      padding: 2px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(10px);
-    }
-    .nav-tabs span {
-      font-size: 11px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      cursor: pointer;
-      color: var(--muted);
-      user-select: none;
-    }
-    .nav-tabs span.active {
-      background: var(--accent-soft);
-      color: #fff;
-    }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
 
-    h1 {
-      font-size: 22px;
-      margin-bottom: 4px;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
+      .pill span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 16px;
+        min-height: 16px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #020617;
+        font-size: 0.65rem;
+        font-weight: 700;
+      }
 
-    .subheading {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
+      .subheading {
+        font-size: 0.9rem;
+        color: var(--muted);
+        max-width: 640px;
+      }
 
-    .card {
-      background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), transparent 55%),
-                  linear-gradient(135deg, #151821, #10121a);
-      border-radius: 16px;
-      border: 1px solid var(--border-subtle);
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.55);
-    }
+      .subheading strong {
+        color: var(--accent-text);
+        font-weight: 600;
+      }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
+      /* layout */
 
-    .card-title {
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .card-subtitle {
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .pill {
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .pill strong {
-      color: #fff;
-      font-weight: 500;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-
-    .file-input {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px dashed rgba(255, 255, 255, 0.2);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .file-input input { display: none; }
-
-    .status-line {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-
-    .clear-btn {
-      margin-left: 8px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      background: transparent;
-      color: var(--muted);
-      font-size: 11px;
-      cursor: pointer;
-    }
-
-    .primary-btn {
-      margin-left: 8px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: none;
-      background: var(--accent);
-      color: #fff;
-      font-size: 11px;
-      cursor: pointer;
-    }
-    .primary-btn:hover {
-      opacity: 0.9;
-    }
-
-    .layout-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-      gap: 18px;
-    }
-    @media (max-width: 900px) {
       .layout-grid {
-        grid-template-columns: minmax(0, 1fr);
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
+        gap: 18px;
+        align-items: flex-start;
       }
-    }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      margin-top: 6px;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    thead { background: rgba(255, 255, 255, 0.04); }
-    th, td {
-      padding: 6px 8px;
-      text-align: right;
-      white-space: nowrap;
-    }
-    th:first-child, td:first-child { text-align: left; }
-    tbody tr:nth-child(even) {
-      background: rgba(255, 255, 255, 0.02);
-    }
+      @media (max-width: 980px) {
+        .layout-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
 
-    .empty-state {
-      font-size: 12px;
-      color: var(--muted);
-      padding: 10px 0;
-    }
+      .card {
+        background: radial-gradient(
+            circle at top left,
+            rgba(251, 146, 60, 0.08),
+            transparent 54%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(56, 189, 248, 0.04),
+            transparent 58%
+          ),
+          var(--bg-card);
+        border-radius: 18px;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--shadow-soft);
+        padding: 14px 16px 14px;
+      }
 
-    .mini-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      font-size: 11px;
-      margin-top: 6px;
-    }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
 
-    .mini-controls label {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
+      .card-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
 
-    .mini-select,
-    .mini-input {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: #0f1118;
-      color: var(--text);
-      font-size: 11px;
-      padding: 3px 8px;
-    }
+      .card-header .eyebrow {
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
 
-    .mini-input {
-      width: 60px;
-      text-align: center;
-    }
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
 
-    .top-row {
-      background: linear-gradient(to right, rgba(255, 122, 0, 0.18), transparent) !important;
-    }
-    .top-row td {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    }
-    .top-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      margin-left: 6px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: #fff;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
+      .chip {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        border: 1px solid var(--chip-border);
+        background: var(--chip-bg);
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
 
-    .player-name-cell {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
+      .chip strong {
+        color: var(--accent-text);
+        font-weight: 600;
+      }
 
-    .player-name-cell a {
-      color: #f5f5f5;
-      text-decoration: none;
-    }
-    .player-name-cell a:hover {
-      text-decoration: underline;
-    }
+      .chip .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
 
-    .chart-container {
-      margin-top: 8px;
-      height: 260px;
-      position: relative;
-    }
+      .controls-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
 
-    .chart-footer {
-      margin-top: 4px;
-      font-size: 11px;
-      color: var(--muted);
-    }
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
 
-    .badge-soft {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(22, 163, 74, 0.12);
-      border: 1px solid rgba(22, 163, 74, 0.5);
-      font-size: 11px;
-      color: #bbf7d0;
-    }
+      label {
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
 
-    .badge-soft span {
-      font-weight: 500;
-      color: #dcfce7;
-    }
+      select,
+      input[type="file"],
+      button,
+      .btn {
+        font-family: var(--font-sans);
+      }
 
-    .help-text {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 6px;
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <header>
-      <div class="brand">
-        <div class="brand-logo">A</div>
-        <div class="brand-text">
-          <div class="brand-title">Aces Analytics</div>
-          <div class="brand-subtitle">Hitting | Pitching | Players | Tournaments</div>
-        </div>
-      </div>
+      select {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 0.8rem;
+        color: var(--text);
+        min-width: 150px;
+      }
 
-      <nav class="nav-tabs">
-        <span class="active" onclick="location.href='team-hitting.html'">Team Hitting</span>
-        <span onclick="location.href='team-pitching.html'">Pitching</span>
-        <span onclick="location.href='player.html'">Players</span>
-        <span onclick="location.href='tournament.html'">Tournaments</span>
-      </nav>
-    </header>
+      select[multiple] {
+        min-height: 80px;
+        border-radius: 10px;
+      }
 
-    <h1>Team Hitting Dashboard</h1>
-    <div class="subheading">
-      Powered by GameChanger Season Stats exports.  
-      Top 3 in the current sort are highlighted.
-    </div>
-    <div id="seasonBadge" class="status-line"></div>
+      .btn {
+        border-radius: 999px;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        border: 1px solid var(--accent-border);
+        background: linear-gradient(135deg, var(--accent-strong), #f97316);
+        color: #0b1020;
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 10px 25px rgba(249, 115, 22, 0.45);
+        white-space: nowrap;
+      }
 
-    <!-- Loader / controls -->
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">Season Stats Source</div>
-          <div class="card-subtitle">
-            Select one or more seasons from the server, or upload a GC Season Stats CSV manually.
+      .btn-secondary {
+        background: transparent;
+        color: var(--accent-text);
+        border-color: rgba(148, 163, 184, 0.7);
+        box-shadow: none;
+      }
+
+      .btn-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.9);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+        box-shadow: none;
+      }
+
+      .file-input-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .file-input-row input[type="file"] {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .status-line {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .status-line strong {
+        color: var(--accent-text);
+      }
+
+      .status-line span.badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        background: rgba(15, 23, 42, 0.9);
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      .status-line span.badge-indicator {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .status-muted {
+        color: rgba(148, 163, 184, 0.8);
+      }
+
+      /* table */
+
+      .table-container {
+        border-radius: 14px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(15, 23, 42, 0.95);
+        overflow: hidden;
+        box-shadow: var(--shadow-subtle);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.78rem;
+      }
+
+      thead {
+        background: radial-gradient(
+            circle at top left,
+            rgba(248, 113, 113, 0.16),
+            transparent 60%
+          ),
+          rgba(15, 23, 42, 0.96);
+      }
+
+      th,
+      td {
+        padding: 6px 8px;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      th {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(148, 163, 184, 0.9);
+        border-bottom: 1px solid var(--border-subtle);
+        cursor: pointer;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      th.sort-asc::after,
+      th.sort-desc::after {
+        content: "";
+        display: inline-block;
+        margin-left: 4px;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+      }
+
+      th.sort-asc::after {
+        border-bottom: 6px solid var(--accent);
+      }
+
+      th.sort-desc::after {
+        border-top: 6px solid var(--accent);
+      }
+
+      tbody tr:nth-child(odd) {
+        background: rgba(15, 23, 42, 0.92);
+      }
+
+      tbody tr:nth-child(even) {
+        background: rgba(15, 23, 42, 0.86);
+      }
+
+      tbody tr.highlight-row {
+        background: linear-gradient(
+          90deg,
+          rgba(251, 146, 60, 0.2),
+          rgba(15, 23, 42, 0.9)
+        );
+      }
+
+      tbody tr.highlight-row td:first-child {
+        border-left: 3px solid var(--accent);
+      }
+
+      td.name-cell {
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      td.name-cell small {
+        display: block;
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+
+      td .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        background: rgba(15, 23, 42, 0.9);
+        color: var(--muted);
+      }
+
+      td .badge-elite {
+        border-color: rgba(34, 197, 94, 0.7);
+        color: #bbf7d0;
+        background: linear-gradient(
+          135deg,
+          rgba(34, 197, 94, 0.2),
+          rgba(15, 23, 42, 0.9)
+        );
+      }
+
+      .stat-good {
+        color: var(--positive);
+        font-weight: 500;
+      }
+
+      .stat-bad {
+        color: var(--negative);
+        font-weight: 500;
+      }
+
+      .stat-neutral {
+        color: var(--muted);
+      }
+
+      .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+
+      .table-wrapper {
+        max-height: 540px;
+        overflow: auto;
+      }
+
+      /* chart */
+
+      .chart-card {
+        position: relative;
+      }
+
+      .chart-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .chart-header-row h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(148, 163, 184, 0.95);
+      }
+
+      .chart-legend {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid var(--border-subtle);
+      }
+
+      .legend-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .legend-swatch.avg {
+        background: #f97316;
+      }
+
+      .legend-swatch.obp {
+        background: #22c55e;
+      }
+
+      .legend-swatch.slg {
+        background: #38bdf8;
+      }
+
+      .legend-swatch.ops {
+        background: #e879f9;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 280px;
+        border-radius: 12px;
+        border: 1px solid var(--border-subtle);
+        background: rgba(15, 23, 42, 0.94);
+        padding: 6px;
+        margin-top: 4px;
+      }
+
+      canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      .chart-empty {
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      /* misc */
+
+      .small-text {
+        font-size: 0.74rem;
+        color: var(--muted);
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(148, 163, 184, 0.9);
+      }
+
+      .tag span {
+        color: var(--accent-text);
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .season-select {
+        min-width: 200px;
+      }
+
+      #loadStatus {
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      #loadStatus strong {
+        color: var(--accent-text);
+      }
+
+      /* mobile tweaks */
+
+      @media (max-width: 640px) {
+        .page-header {
+          gap: 8px;
+        }
+        .page-title-block h1 {
+          font-size: 1.5rem;
+        }
+        .card {
+          padding: 12px 12px 14px;
+        }
+        th,
+        td {
+          padding: 5px 6px;
+        }
+        .controls-row {
+          align-items: stretch;
+        }
+        select {
+          width: 100%;
+        }
+        .file-input-row {
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="page-header">
+        <div class="page-title-block">
+          <h1>
+            Team Hitting
+            <span class="pill"
+              ><span>AA</span> Aces Analytics · Internal</span
+            >
+          </h1>
+          <div class="subheading">
+            Uses combined <strong>GameChanger Season Stats CSVs</strong> pulled
+            from your scraper or uploaded manually. Supports
+            <strong>multi-season selection</strong> and recomputes AVG/OBP/SLG/OPS
+            from the combined totals.
           </div>
+          <div id="seasonBadge" class="status-line"></div>
+          <div id="lastUpdated" class="status-line"></div>
         </div>
-      </div>
+        <div class="tag">
+          Built for <span>&nbsp;Delmarva Aces 12U&nbsp;</span>
+        </div>
+      </header>
 
-      <div class="controls">
-        <label>
-          <span style="font-size:11px; color:var(--muted); display:block; margin-bottom:2px;">
-            Seasons (from server)
-          </span>
-          <select id="seasonSelect" class="mini-select" multiple size="3" style="min-width: 180px;"></select>
-        </label>
-
-        <button type="button" id="applySeasons" class="primary-btn">
-          Apply Seasons
-        </button>
-
-        <label class="file-input">
-          <span>📄 Or upload GC Season Stats CSV</span>
-          <input type="file" id="csvFile" accept=".csv" />
-        </label>
-      </div>
-
-      <div class="status-line" id="loadStatus">
-        No season stats loaded yet.
-      </div>
-    </section>
-
-    <!-- Main layout: table + chart -->
-    <div class="layout-grid">
-      <section class="card">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Hitting Leaderboard</div>
-            <div class="card-subtitle">Filter by PA and click any column to sort (or use dropdown)</div>
+      <section class="layout-grid">
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <div class="eyebrow">Input · Seasons &amp; CSV</div>
+              <h2>Data Sources</h2>
+            </div>
           </div>
-        </div>
 
-        <div class="mini-controls">
-          <label>
-            Sort by
-            <select id="sortBy" class="mini-select">
-              <option value="OPS">OPS (high → low)</option>
-              <option value="AVG">AVG</option>
-              <option value="OBP">OBP</option>
-              <option value="SLG">SLG</option>
-              <option value="RBI">RBI</option>
-              <option value="R_hit">Runs</option>
-              <option value="SB">SB</option>
-              <option value="PA">PA</option>
-            </select>
-          </label>
-          <label>
-            Min PA
-            <input type="number" id="minPA" class="mini-input" value="1" min="0" />
-          </label>
-        </div>
-
-        <div id="tableContainer">
-          <div class="empty-state">
-            Load one or more Season Stats files to see player-by-player hitting totals.
+          <div class="chip-row">
+            <div class="chip">
+              <span class="dot"></span>
+              <span>Primary: GC Season Stats CSV</span>
+            </div>
+            <div class="chip">
+              <span class="dot"></span>
+              <span>Merge across seasons · Recalculate slash line</span>
+            </div>
+            <div class="chip">
+              <span class="dot"></span>
+              <span>Fallback: Manual CSV upload + localStorage</span>
+            </div>
           </div>
-        </div>
 
-        <div class="help-text">
-          Tip: Click a player name to jump to the Player Explorer filtered to that hitter.
-        </div>
+          <div class="controls-row">
+            <div class="control-group">
+              <label for="seasonSelect">Seasons (multi-select)</label>
+              <select
+                id="seasonSelect"
+                class="season-select"
+                multiple
+                size="4"
+              ></select>
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="applySeasonsBtn" class="btn">
+                <span class="btn-icon">✓</span>
+                Apply Seasons
+              </button>
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="clearSeasonsBtn" class="btn btn-secondary">
+                Clear
+              </button>
+            </div>
+          </div>
+
+          <div class="file-input-row">
+            <div class="control-group">
+              <label for="csvFileInput">Manual CSV Upload (Fallback)</label>
+              <input
+                type="file"
+                id="csvFileInput"
+                accept=".csv,text/csv"
+                aria-label="Upload GameChanger Season Stats CSV"
+              />
+            </div>
+            <div class="control-group">
+              <label>&nbsp;</label>
+              <button id="clearStorageBtn" class="btn btn-secondary">
+                Clear Saved CSV
+              </button>
+            </div>
+          </div>
+
+          <div id="loadStatus" class="status-line"></div>
+        </section>
+
+        <section class="card chart-card">
+          <div class="chart-header-row">
+            <h3>Team Slash Line · Combined Seasons</h3>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-swatch avg"></span>
+                AVG
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch obp"></span>
+                OBP
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch slg"></span>
+                SLG
+              </div>
+              <div class="legend-item">
+                <span class="legend-swatch ops"></span>
+                OPS
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="slashChart"></canvas>
+            <div id="chartEmptyState" class="chart-empty" style="display: none">
+              Select at least one season to see the combined slash line.
+            </div>
+          </div>
+          <div class="small-text" style="margin-top: 6px">
+            Team totals recompute per selected seasons; OPS is
+            <code>OBP + SLG</code>. Use this as a quick visual health check
+            over-time.
+          </div>
+        </section>
       </section>
 
-      <section class="card">
-        <div class="card-header">
+      <section class="card" style="margin-top: 16px">
+        <div class="card-header sticky-header">
           <div>
-            <div class="card-title">Team Hitting Profile</div>
-            <div class="card-subtitle">Aggregated across all players in the loaded season(s)</div>
+            <div class="eyebrow">Output · Leaderboard</div>
+            <h2>Hitting Leaderboard</h2>
           </div>
-          <div class="badge-soft">
-            Team slash line: <span id="teamSlashLine">– / – / –</span>
+          <div class="chip-row">
+            <div class="chip">
+              <span class="dot"></span>
+              <span
+                >Click any column header to re-sort; top rows highlight “dudes”.</span
+              >
+            </div>
+            <div class="chip">
+              <span class="dot"></span>
+              <span>Min 1 PA; stats are combined across selected seasons.</span>
+            </div>
           </div>
         </div>
-
-        <div class="chart-container">
-          <canvas id="teamChart"></canvas>
-        </div>
-        <div class="chart-footer" id="chartFooter">
-          Team AVG/OBP/SLG/OPS computed from all player rows in the Season Stats data.
+        <div class="table-container">
+          <div class="table-wrapper">
+            <table id="hittingTable">
+              <thead>
+                <tr>
+                  <th data-key="PlayerName">Player</th>
+                  <th data-key="Uniform">#</th>
+                  <th data-key="PA">PA</th>
+                  <th data-key="AB">AB</th>
+                  <th data-key="H">H</th>
+                  <th data-key="Doubles">2B</th>
+                  <th data-key="Triples">3B</th>
+                  <th data-key="HomeRuns">HR</th>
+                  <th data-key="RBI">RBI</th>
+                  <th data-key="R">R</th>
+                  <th data-key="BB">BB</th>
+                  <th data-key="SO">K</th>
+                  <th data-key="SB">SB</th>
+                  <th data-key="AVG">AVG</th>
+                  <th data-key="OBP">OBP</th>
+                  <th data-key="SLG">SLG</th>
+                  <th data-key="OPS">OPS</th>
+                </tr>
+              </thead>
+              <tbody id="hittingTbody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
-    </div>
-  </main>
+    </main>
 
-  <script>
-    // ------- Utilities -------
-    const STORAGE_KEY = "acesSeasonStatsCsv"; // manual CSV cache
-    const TOP_N = 3;
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      // --- Utilities ---
 
-    // Sort state
-    let sortKey = "OPS";
-    let sortDir = "desc"; // 'desc' or 'asc'
-    const ascPreferred = {
-      AVG: false,
-      OBP: false,
-      SLG: false,
-      OPS: false,
-      RBI: false,
-      R_hit: false,
-      SB: false,
-      PA: false,
-      AB: false,
-      H: false,
-      _2B: false,
-      _3B: false,
-      HR_hit: false
-    };
+      function parseCsv(text) {
+        const lines = text.replace(/\r\n/g, "\n").split("\n");
+        const header = lines[0].split(",").map((h) => h.trim());
+        const rows = [];
 
-    function defaultDirFor(key) {
-      return ascPreferred[key] ? "asc" : "desc";
-    }
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
 
-    function saveSeasonCsv(text) {
-      try {
-        localStorage.setItem(STORAGE_KEY, text);
-      } catch (e) {
-        console.warn("Could not save CSV to localStorage", e);
-      }
-    }
-
-    function loadSeasonCsv() {
-      try {
-        return localStorage.getItem(STORAGE_KEY);
-      } catch (e) {
-        console.warn("Could not read CSV from localStorage", e);
-        return null;
-      }
-    }
-
-    function clearSeasonCsv() {
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch (e) {
-        console.warn("Could not clear season CSV", e);
-      }
-      location.reload();
-    }
-
-    function updateSeasonBadge(hasCsv) {
-      const el = document.getElementById("seasonBadge");
-      if (!el) return;
-      if (hasCsv) {
-        el.innerHTML = `
-          Season stats cached in this browser
-          <button type="button" class="clear-btn" onclick="clearSeasonCsv()">Clear</button>
-        `;
-      } else {
-        el.textContent = "";
-      }
-    }
-
-    function safeNumber(value) {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : 0;
-    }
-
-    function format3(x) {
-      if (x === null || x === undefined || Number.isNaN(x)) return "–";
-      return x.toFixed(3).replace(/^0/, "");
-    }
-
-    function formatAvg(x) {
-      if (x === null || x === undefined || Number.isNaN(x)) return "–";
-      return x.toFixed(3).replace(/^0/, "");
-    }
-
-    // ------- API + multi-season helpers (Option C) -------
-
-    // Fetch list of available hitting seasons from the backend.
-    async function fetchHittingSeasons() {
-      const selectEl = document.getElementById("seasonSelect");
-      const statusEl = document.getElementById("loadStatus");
-      if (!selectEl) return;
-
-      try {
-        statusEl.textContent = "Loading seasons from server...";
-        const res = await fetch("/api/hitting/seasons");
-        if (!res.ok) {
-          throw new Error("HTTP " + res.status);
-        }
-        const seasons = await res.json(); // expect [{id, label}, ...] or ["fall2024", ...]
-        selectEl.innerHTML = "";
-
-        if (!seasons || !seasons.length) {
-          statusEl.textContent = "Server returned no seasons. You can still upload a CSV manually.";
-          return;
-        }
-
-        // Normalize: if server returns simple strings, wrap into objects.
-        const normalized = seasons.map(s => {
-          if (typeof s === "string") {
-            return { id: s, label: s };
-          }
-          return s;
-        });
-
-        normalized.forEach((s, idx) => {
-          const opt = document.createElement("option");
-          opt.value = s.id;
-          opt.textContent = s.label || s.id;
-          // By default, select the first season
-          if (idx === 0) opt.selected = true;
-          selectEl.appendChild(opt);
-        });
-
-        statusEl.textContent = "Seasons loaded from server. Select one or more, then click Apply.";
-      } catch (err) {
-        console.error("Error loading seasons from server", err);
-        statusEl.textContent = "Could not load seasons from server. You can still upload a CSV manually.";
-      }
-    }
-
-    function getSelectedSeasonIds() {
-      const selectEl = document.getElementById("seasonSelect");
-      if (!selectEl) return [];
-      const ids = [];
-      for (const opt of selectEl.options) {
-        if (opt.selected) ids.push(opt.value);
-      }
-      return ids;
-    }
-
-    function parseCsvTextToPlayers(csvText) {
-      return new Promise((resolve, reject) => {
-        Papa.parse(csvText, {
-          header: false,
-          dynamicTyping: false,
-          skipEmptyLines: true,
-          complete: (results) => {
-            const rows = results.data;
-            try {
-              const parsed = parseSeasonStats(rows);
-              resolve(parsed || []);
-            } catch (e) {
-              console.error("Error in parseSeasonStats", e);
-              resolve([]);
+          const cells = [];
+          let current = "";
+          let inQuotes = false;
+          for (let char of line) {
+            if (char === '"') {
+              inQuotes = !inQuotes;
+              continue;
             }
-          },
-          error: (err) => {
-            console.error("Papa.parse error", err);
-            reject(err);
+            if (char === "," && !inQuotes) {
+              cells.push(current);
+              current = "";
+            } else {
+              current += char;
+            }
           }
-        });
-      });
-    }
+          cells.push(current);
 
- // UPDATED: merge across seasons by PLAYER NAME only (case-insensitive)
-// so jersey number changes don't split the player into two rows.
-function mergePlayerArrays(listOfArrays) {
-  const map = new Map();
+          const row = {};
+          header.forEach((key, idx) => {
+            row[key] = cells[idx] !== undefined ? cells[idx].trim() : "";
+          });
+          rows.push(row);
+        }
+        return rows;
+      }
 
-  listOfArrays.forEach(arr => {
-    (arr || []).forEach(p => {
-      // Use name (lowercased) as the unique key
-      const key = (p.name || "").trim().toLowerCase();
-      if (!key) return; // skip weird empty rows
+      function toNumber(value) {
+        if (value === null || value === undefined) return 0;
+        const n = Number(String(value).replace(/[^0-9.-]/g, ""));
+        return isNaN(n) ? 0 : n;
+      }
 
-      let agg = map.get(key);
-      if (!agg) {
-        // Initialize aggregate object
-        agg = {
-          name: p.name,
-          // Start with this season's number; we may update later
-          number: p.number,
+      function formatAvg(a) {
+        if (isNaN(a)) return "";
+        return a.toFixed(3).replace(/^0+/, "");
+      }
 
-          GP_hit: 0,
-          PA: 0,
-          AB: 0,
-          H: 0,
-          _1B: 0,
-          _2B: 0,
-          _3B: 0,
-          HR_hit: 0,
-          RBI: 0,
-          R_hit: 0,
-          BB_hit: 0,
-          SO_hit: 0,
-          HBP_hit: 0,
-          SAC: 0,
-          SF: 0,
-          SB: 0
-        };
-        map.set(key, agg);
-      } else {
-        // If the jersey number changed, choose a "better" one to display.
-        // Here we prefer the number from the season with MORE PA.
-        if (p.number && p.number !== agg.number) {
-          const currentPA = safeNumber(agg.PA);
-          const newPA     = safeNumber(p.PA);
-          if (newPA >= currentPA) {
-            agg.number = p.number;
-          }
+      function formatRate(a) {
+        if (isNaN(a)) return "";
+        return a.toFixed(3).replace(/^0+/, "");
+      }
+
+      function safeGet(row, key) {
+        return row[key] ?? row[key.toLowerCase()] ?? "";
+      }
+
+      // --- Local storage fallback ---
+
+      const STORAGE_KEY = "aces_hitting_csv_v1";
+
+      function saveSeasonCsv(text) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, text);
+        } catch (err) {
+          console.warn("Unable to save CSV to localStorage", err);
         }
       }
 
-      // Add this season's stats (numeric, cumulative)
-      agg.GP_hit  += safeNumber(p.GP_hit);
-      agg.PA      += safeNumber(p.PA);
-      agg.AB      += safeNumber(p.AB);
-      agg.H       += safeNumber(p.H);
-      agg._1B     += safeNumber(p._1B);
-      agg._2B     += safeNumber(p._2B);
-      agg._3B     += safeNumber(p._3B);
-      agg.HR_hit  += safeNumber(p.HR_hit);
-      agg.RBI     += safeNumber(p.RBI);
-      agg.R_hit   += safeNumber(p.R_hit);
-      agg.BB_hit  += safeNumber(p.BB_hit);
-      agg.SO_hit  += safeNumber(p.SO_hit);
-      agg.HBP_hit += safeNumber(p.HBP_hit);
-      agg.SAC     += safeNumber(p.SAC);
-      agg.SF      += safeNumber(p.SF);
-      agg.SB      += safeNumber(p.SB);
-    });
-  });
-
-  const merged = [];
-  for (const agg of map.values()) {
-    const singles = Math.max(0, agg.H - agg._2B - agg._3B - agg.HR_hit);
-    const TB = singles + 2 * agg._2B + 3 * agg._3B + 4 * agg.HR_hit;
-
-    let AVG = 0, OBP = 0, SLG = 0, OPS = 0;
-    if (agg.AB > 0) {
-      AVG = agg.H / agg.AB;
-      SLG = TB / agg.AB;
-    }
-    const obpDen = agg.AB + agg.BB_hit + agg.HBP_hit + agg.SF;
-    if (obpDen > 0) {
-      OBP = (agg.H + agg.BB_hit + agg.HBP_hit) / obpDen;
-    }
-    OPS = OBP + SLG;
-    const ISO = SLG - AVG;
-
-    merged.push({
-      name: agg.name,
-      number: agg.number,
-      GP_hit: agg.GP_hit,
-      PA: agg.PA,
-      AB: agg.AB,
-      H: agg.H,
-      _1B: agg._1B,
-      _2B: agg._2B,
-      _3B: agg._3B,
-      HR_hit: agg.HR_hit,
-      RBI: agg.RBI,
-      R_hit: agg.R_hit,
-      BB_hit: agg.BB_hit,
-      SO_hit: agg.SO_hit,
-      HBP_hit: agg.HBP_hit,
-      SAC: agg.SAC,
-      SF: agg.SF,
-      SB: agg.SB,
-      AVG,
-      OBP,
-      SLG,
-      OPS,
-      ISO
-    });
-  }
-
-
-
-      return merged;
-    }
-
-    async function loadSeasonsFromApi() {
-      const statusEl = document.getElementById("loadStatus");
-      const ids = getSelectedSeasonIds();
-      if (!ids.length) {
-        statusEl.textContent = "No seasons selected. Choose one or more seasons, then click Apply.";
-        return;
+      function loadSeasonCsv() {
+        try {
+          return window.localStorage.getItem(STORAGE_KEY);
+        } catch (err) {
+          console.warn("Unable to load CSV from localStorage", err);
+          return null;
+        }
       }
 
-      statusEl.textContent = "Loading season data from server...";
-      try {
-        const texts = await Promise.all(
-          ids.map(id =>
-            fetch("/api/hitting/csv/" + encodeURIComponent(id))
-              .then(res => {
-                if (!res.ok) throw new Error("HTTP " + res.status);
-                return res.text();
-              })
-          )
-        );
+      function clearSeasonCsv() {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch (err) {
+          console.warn("Unable to clear CSV from localStorage", err);
+        }
+      }
 
-        const perSeasonPlayers = await Promise.all(
-          texts.map(txt => parseCsvTextToPlayers(txt))
-        );
+      // --- State ---
 
-        players = mergePlayerArrays(perSeasonPlayers);
-        if (!players.length) {
-          statusEl.textContent = "No player rows found in selected seasons.";
-          renderTable();
-          renderTeamChart();
+      let currentSortKey = "OPS";
+      let currentSortDir = "desc";
+      let chartInstance = null;
+      let combinedTotals = null;
+
+      // --- Backend season list & CSV loading ---
+
+      async function fetchHittingSeasons() {
+        const select = document.getElementById("seasonSelect");
+        if (!select) return;
+        try {
+          const res = await fetch("/api/hitting/seasons");
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const seasons = await res.json();
+          select.innerHTML = "";
+          if (!seasons || !seasons.length) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "No seasons found (API)";
+            opt.disabled = true;
+            select.appendChild(opt);
+            return;
+          }
+          for (const s of seasons) {
+            const opt = document.createElement("option");
+            opt.value = s.id;
+            opt.textContent = s.label || s.id;
+            select.appendChild(opt);
+          }
+        } catch (err) {
+          console.error("Error fetching hitting seasons", err);
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "Error loading seasons (API)";
+          opt.disabled = true;
+          select.appendChild(opt);
+        }
+      }
+
+      async function fetchSeasonCsvFromApi(seasonId) {
+        const res = await fetch(`/api/hitting/csv/${encodeURIComponent(seasonId)}`);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch CSV for season ${seasonId}: HTTP ${res.status}`);
+        }
+        return await res.text();
+      }
+
+      // --- Last-updated helper for Hitting ---
+
+      async function fetchHittingLastUpdated() {
+        const el = document.getElementById("lastUpdated");
+        if (!el) return;
+
+        try {
+          const res = await fetch("/api/hitting/last-updated");
+          if (!res.ok) throw new Error("HTTP " + res.status);
+
+          const data = await res.json();
+          if (!data.last_updated) {
+            el.textContent = "";
+            return;
+          }
+
+          const dt = new Date(data.last_updated);
+          if (!isNaN(dt.getTime())) {
+            el.textContent = "Stats last updated: " + dt.toLocaleString();
+          } else {
+            el.textContent = "Stats last updated: " + data.last_updated;
+          }
+        } catch (err) {
+          console.error("Error fetching hitting last-updated", err);
+        }
+      }
+
+      // --- Main processing ---
+
+      function updateSeasonBadge(fromStorage) {
+        const el = document.getElementById("seasonBadge");
+        if (!el) return;
+        if (fromStorage) {
+          el.innerHTML =
+            '<span class="badge"><span class="badge-indicator"></span> Using locally cached CSV (manual upload)</span>';
+        } else {
+          el.innerHTML =
+            '<span class="badge"><span class="badge-indicator"></span> Using server CSVs (scraper pipeline)</span>';
+        }
+      }
+
+      function setLoadStatus(msg) {
+        const el = document.getElementById("loadStatus");
+        if (!el) return;
+        el.innerHTML = msg || "";
+      }
+
+      function combineRowsAcrossSeasons(rows) {
+        const byKey = new Map();
+
+        for (const row of rows) {
+          const rawName = safeGet(row, "PlayerName") || safeGet(row, "Player");
+          const uniform = (safeGet(row, "Uniform") || "").trim();
+          const nameKey = (rawName || "").trim().toLowerCase();
+
+          if (!nameKey) continue;
+
+          const key = nameKey;
+
+          const existing = byKey.get(key) || {
+            PlayerName: rawName,
+            Uniforms: new Set(),
+            PA: 0,
+            AB: 0,
+            H: 0,
+            Doubles: 0,
+            Triples: 0,
+            HomeRuns: 0,
+            RBI: 0,
+            R: 0,
+            BB: 0,
+            SO: 0,
+            SB: 0,
+            TB: 0,
+          };
+
+          if (uniform) existing.Uniforms.add(uniform);
+
+          existing.PA += toNumber(safeGet(row, "PA"));
+          existing.AB += toNumber(safeGet(row, "AB"));
+          existing.H += toNumber(safeGet(row, "H"));
+          existing.Doubles += toNumber(safeGet(row, "Doubles"));
+          existing.Triples += toNumber(safeGet(row, "Triples"));
+          existing.HomeRuns += toNumber(safeGet(row, "HomeRuns"));
+          existing.RBI += toNumber(safeGet(row, "RBI"));
+          existing.R += toNumber(safeGet(row, "R"));
+          existing.BB += toNumber(safeGet(row, "BB"));
+          existing.SO += toNumber(safeGet(row, "SO"));
+          existing.SB += toNumber(safeGet(row, "SB"));
+          existing.TB += toNumber(safeGet(row, "TB"));
+
+          byKey.set(key, existing);
+        }
+
+        const out = [];
+        for (const [, agg] of byKey) {
+          const pa = agg.PA || agg.AB + agg.BB;
+          const ab = agg.AB;
+          const singles = Math.max(0, agg.H - agg.Doubles - agg.Triples - agg.HomeRuns);
+          const tb =
+            singles +
+            2 * agg.Doubles +
+            3 * agg.Triples +
+            4 * agg.HomeRuns;
+
+          const avg = ab > 0 ? agg.H / ab : 0;
+          const obp = pa > 0 ? (agg.H + agg.BB) / pa : 0;
+          const slg = ab > 0 ? tb / ab : 0;
+          const ops = obp + slg;
+
+          out.push({
+            PlayerName: agg.PlayerName,
+            Uniform: Array.from(agg.Uniforms).join(" / "),
+            PA: agg.PA,
+            AB: agg.AB,
+            H: agg.H,
+            Doubles: agg.Doubles,
+            Triples: agg.Triples,
+            HomeRuns: agg.HomeRuns,
+            RBI: agg.RBI,
+            R: agg.R,
+            BB: agg.BB,
+            SO: agg.SO,
+            SB: agg.SB,
+            TB: tb,
+            AVG: avg,
+            OBP: obp,
+            SLG: slg,
+            OPS: ops,
+          });
+        }
+
+        return out;
+      }
+
+      function renderTable(rows) {
+        const tbody = document.getElementById("hittingTbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        if (!rows || !rows.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 17;
+          td.textContent = "No data. Select a season or upload a CSV.";
+          td.classList.add("stat-neutral");
+          tr.appendChild(td);
+          tbody.appendChild(tr);
           return;
         }
 
-        statusEl.textContent = `Loaded ${players.length} players from ${ids.length} season(s) via server.`;
-        renderTable();
-        renderTeamChart();
-      } catch (err) {
-        console.error("Error loading seasons from API", err);
-        statusEl.textContent = "Error loading seasons from API. Check console for details, or upload a CSV manually.";
+        const sorted = [...rows].sort((a, b) => {
+          const ak = a[currentSortKey];
+          const bk = b[currentSortKey];
+
+          const aVal = typeof ak === "number" ? ak : toNumber(ak);
+          const bVal = typeof bk === "number" ? bk : toNumber(bk);
+
+          if (currentSortDir === "asc") {
+            return aVal - bVal;
+          } else {
+            return bVal - aVal;
+          }
+        });
+
+        sorted.forEach((row, idx) => {
+          const tr = document.createElement("tr");
+          if (idx < 3 && currentSortKey === "OPS") {
+            tr.classList.add("highlight-row");
+          }
+
+          const nameTd = document.createElement("td");
+          nameTd.className = "name-cell";
+          nameTd.innerHTML = `${row.PlayerName || ""}${
+            row.Uniform
+              ? `<small>Uniform: ${row.Uniform}</small>`
+              : ""
+          }`;
+          tr.appendChild(nameTd);
+
+          function addTd(val, opts = {}) {
+            const td = document.createElement("td");
+            td.textContent = val;
+            if (opts.className) td.className = opts.className;
+            tr.appendChild(td);
+          }
+
+          addTd(row.Uniform || "");
+          addTd(row.PA, { className: "stat-neutral" });
+          addTd(row.AB, { className: "stat-neutral" });
+          addTd(row.H, { className: "stat-good" });
+          addTd(row.Doubles || 0, { className: "stat-good" });
+          addTd(row.Triples || 0, { className: "stat-good" });
+          addTd(row.HomeRuns || 0, { className: "stat-good" });
+          addTd(row.RBI || 0, { className: "stat-good" });
+          addTd(row.R || 0, { className: "stat-good" });
+          addTd(row.BB || 0, { className: "stat-neutral" });
+          addTd(row.SO || 0, { className: "stat-bad" });
+          addTd(row.SB || 0, { className: "stat-good" });
+
+          addTd(formatAvg(row.AVG), { className: "stat-good" });
+          addTd(formatRate(row.OBP), { className: "stat-good" });
+          addTd(formatRate(row.SLG), { className: "stat-good" });
+          addTd(formatRate(row.OPS), { className: "stat-good" });
+
+          tbody.appendChild(tr);
+        });
       }
-    }
 
-    // ------- CSV handling (manual upload) -------
-
-    let players = [];
-    let teamChart = null;
-
-    function parseSeasonStats(rows) {
-      const headerIndex = rows.findIndex(r =>
-        r.includes("Number") && r.includes("Last") && r.includes("First")
-      );
-      if (headerIndex === -1) {
-        alert("Could not find 'Number, Last, First' header row in this CSV.");
-        return [];
+      function updateTableHeaderSortState() {
+        const ths = document.querySelectorAll("#hittingTable thead th");
+        ths.forEach((th) => {
+          th.classList.remove("sort-asc", "sort-desc");
+          const key = th.getAttribute("data-key");
+          if (key === currentSortKey) {
+            th.classList.add(
+              currentSortDir === "asc" ? "sort-asc" : "sort-desc"
+            );
+          }
+        });
       }
 
-      const header = rows[headerIndex];
-      const dataRows = rows.slice(headerIndex + 1)
-        .filter(r => r[0] && r[0] !== "Totals");
+      function attachHeaderSortHandlers() {
+        const ths = document.querySelectorAll("#hittingTable thead th");
+        ths.forEach((th) => {
+          th.addEventListener("click", () => {
+            const key = th.getAttribute("data-key");
+            if (!key) return;
+            if (currentSortKey === key) {
+              currentSortDir = currentSortDir === "asc" ? "desc" : "asc";
+            } else {
+              currentSortKey = key;
+              currentSortDir = key === "PlayerName" ? "asc" : "desc";
+            }
+            updateTableHeaderSortState();
+            if (combinedTotals) {
+              renderTable(combinedTotals);
+            }
+          });
+        });
+      }
 
-      const idxNum   = header.indexOf("Number");
-      const idxLast  = header.indexOf("Last");
-      const idxFirst = header.indexOf("First");
+      function updateTeamChart(rows) {
+        const ctx = document.getElementById("slashChart");
+        const emptyState = document.getElementById("chartEmptyState");
+        if (!ctx || !emptyState) return;
 
-      const idxGP_hit  = header.indexOf("GP");
-      const idxPA      = header.indexOf("PA");
-      const idxAB      = header.indexOf("AB");
-      const idxAVG     = header.indexOf("AVG");
-      const idxOBP     = header.indexOf("OBP");
-      const idxOPS     = header.indexOf("OPS");
-      const idxSLG     = header.indexOf("SLG");
-      const idxH       = header.indexOf("H");
-      const idx1B      = header.indexOf("1B");
-      const idx2B      = header.indexOf("2B");
-      const idx3B      = header.indexOf("3B");
-      const idxHR_hit  = header.indexOf("HR");
-      const idxRBI     = header.indexOf("RBI");
-      const idxR_hit   = header.indexOf("R");
-      const idxBB_hit  = header.indexOf("BB");
-      const idxSO_hit  = header.indexOf("SO");
-      const idxHBP_hit = header.indexOf("HBP");
-      const idxSAC     = header.indexOf("SAC");
-      const idxSF      = header.indexOf("SF");
-      const idxSB      = header.indexOf("SB");
-      const idxSBpct   = header.indexOf("SB%");
-
-      const result = dataRows.map(r => {
-        const first = (r[idxFirst] || "").trim();
-        const last  = (r[idxLast] || "").trim();
-        const name  = `${first} ${last}`.trim();
-        const number = (r[idxNum] || "").trim();
-
-        const GP_hit = safeNumber(r[idxGP_hit]);
-        const PA     = safeNumber(r[idxPA]);
-        const AB     = safeNumber(r[idxAB]);
-        const H      = safeNumber(r[idxH]);
-        const _1B    = safeNumber(r[idx1B]);
-        const _2B    = safeNumber(r[idx2B]);
-        const _3B    = safeNumber(r[idx3B]);
-        const HR_hit = safeNumber(r[idxHR_hit]);
-        const RBI    = safeNumber(r[idxRBI]);
-        const R_hit  = safeNumber(r[idxR_hit]);
-        const BB_hit = safeNumber(r[idxBB_hit]);
-        const SO_hit = safeNumber(r[idxSO_hit]);
-        const HBP_hit= safeNumber(r[idxHBP_hit]);
-        const SAC    = safeNumber(r[idxSAC]);
-        const SF     = safeNumber(r[idxSF]);
-        const SB     = safeNumber(r[idxSB]);
-        const SBpct  = safeNumber(r[idxSBpct]);
-
-        const singles = Math.max(0, H - _2B - _3B - HR_hit);
-        const TB = singles + 2 * _2B + 3 * _3B + 4 * HR_hit;
-
-        let AVG = safeNumber(r[idxAVG]);
-        let OBP = safeNumber(r[idxOBP]);
-        let SLG = safeNumber(r[idxSLG]);
-        let OPS = safeNumber(r[idxOPS]);
-
-        if (!AVG && AB > 0) AVG = H / AB;
-        if (!OBP && (AB + BB_hit + HBP_hit + SF) > 0) {
-          OBP = (H + BB_hit + HBP_hit) / (AB + BB_hit + HBP_hit + SF);
+        if (!rows || !rows.length) {
+          emptyState.style.display = "flex";
+          if (chartInstance) {
+            chartInstance.destroy();
+            chartInstance = null;
+          }
+          return;
         }
-        if (!SLG && AB > 0) SLG = TB / AB;
-        if (!OPS) OPS = OBP + SLG;
 
-        const ISO = SLG - AVG;
+        emptyState.style.display = "none";
 
-        return {
-          name,
-          number,
-          GP_hit, PA, AB, H, _1B, _2B, _3B, HR_hit, RBI, R_hit,
-          BB_hit, SO_hit, HBP_hit, SAC, SF, SB, SBpct,
-          AVG, OBP, SLG, OPS, ISO
+        let totalAB = 0;
+        let totalH = 0;
+        let totalBB = 0;
+        let totalTB = 0;
+        let totalPA = 0;
+
+        for (const row of rows) {
+          totalAB += row.AB || 0;
+          totalH += row.H || 0;
+          totalBB += row.BB || 0;
+          totalTB += row.TB || 0;
+          totalPA += row.PA || 0;
+        }
+
+        const teamAVG = totalAB > 0 ? totalH / totalAB : 0;
+        const teamOBP = totalPA > 0 ? (totalH + totalBB) / totalPA : 0;
+        const teamSLG = totalAB > 0 ? totalTB / totalAB : 0;
+        const teamOPS = teamOBP + teamSLG;
+
+        const data = {
+          labels: ["AVG", "OBP", "SLG", "OPS"],
+          datasets: [
+            {
+              label: "Team Slash Line",
+              data: [teamAVG, teamOBP, teamSLG, teamOPS],
+              borderWidth: 2,
+              tension: 0.3,
+              fill: false,
+            },
+          ],
         };
-      });
 
-      return result;
-    }
-
-    function parseSeasonCsvText(csvText, opts = {}) {
-      const statusEl = document.getElementById("loadStatus");
-      statusEl.textContent = "Parsing CSV...";
-
-      Papa.parse(csvText, {
-        header: false,
-        dynamicTyping: false,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const rows = results.data;
-          if (!rows || rows.length < 3) {
-            alert("CSV looks too short to be a GameChanger Season Stats export.");
-            statusEl.textContent = "Failed to parse CSV.";
-            return;
-          }
-
-          players = parseSeasonStats(rows);
-          if (!players.length) {
-            statusEl.textContent = "No player rows found.";
-            return;
-          }
-
-          renderTable();
-          renderTeamChart();
-          updateSeasonBadge(true);
-
-          statusEl.textContent = `Loaded ${players.length} players from ${opts.fromStorage ? "cached" : "uploaded"} CSV.`;
-        },
-        error: (err) => {
-          console.error(err);
-          alert("Error parsing CSV: " + err.message);
-          statusEl.textContent = "Error parsing CSV.";
-        }
-      });
-    }
-
-    function handleCsv(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target.result;
-        saveSeasonCsv(text);
-        parseSeasonCsvText(text, { fromStorage: false });
-      };
-      reader.readAsText(file);
-    }
-
-    // ------- Rendering table with filters/sort -------
-    function sortPlayers(playersArr) {
-      const arr = [...playersArr];
-      arr.sort((a, b) => {
-        const va = a[sortKey] ?? 0;
-        const vb = b[sortKey] ?? 0;
-        if (sortDir === "asc") return va - vb;
-        return vb - va;
-      });
-      return arr;
-    }
-
-    function renderTable() {
-      const container = document.getElementById("tableContainer");
-      if (!players.length) {
-        container.innerHTML = '<div class="empty-state">Upload a CSV or load seasons from the server to see player-by-player hitting stats.</div>';
-        return;
-      }
-
-      const sortByEl = document.getElementById("sortBy");
-      const minPAEl  = document.getElementById("minPA");
-      const minPA    = minPAEl ? (Number(minPAEl.value) || 0) : 0;
-
-      if (sortByEl && sortByEl.value !== sortKey) {
-        sortByEl.value = sortKey;
-      }
-
-      let eligible = players.filter(p => p.PA >= minPA);
-
-      if (!eligible.length) {
-        container.innerHTML = '<div class="empty-state">No players match this PA filter.</div>';
-        return;
-      }
-
-      eligible = sortPlayers(eligible);
-
-      const headerHtml = `
-        <thead>
-          <tr>
-            <th>Player</th>
-            <th>PA</th>
-            <th>AB</th>
-            <th>H</th>
-            <th>2B</th>
-            <th>3B</th>
-            <th>HR</th>
-            <th>AVG</th>
-            <th>OBP</th>
-            <th>SLG</th>
-            <th>OPS</th>
-            <th>RBI</th>
-            <th>R</th>
-            <th>SB</th>
-          </tr>
-        </thead>
-      `;
-
-      const rowsHtml = eligible.map((p, idx) => {
-        const isTop = idx < TOP_N;
-        const rowClass = isTop ? ' class="top-row"' : "";
-        const badge = isTop ? `<span class="top-badge">${idx === 0 ? "Top Bat" : `#${idx+1}`}</span>` : "";
-        return `
-          <tr${rowClass}>
-            <td class="player-name-cell">
-              <a href="player.html?name=${encodeURIComponent(p.name)}">${p.name}</a>
-              ${badge}
-            </td>
-            <td>${p.PA}</td>
-            <td>${p.AB}</td>
-            <td>${p.H}</td>
-            <td>${p._2B}</td>
-            <td>${p._3B}</td>
-            <td>${p.HR_hit}</td>
-            <td>${formatAvg(p.AVG)}</td>
-            <td>${format3(p.OBP)}</td>
-            <td>${format3(p.SLG)}</td>
-            <td>${format3(p.OPS)}</td>
-            <td>${p.RBI}</td>
-            <td>${p.R_hit}</td>
-            <td>${p.SB}</td>
-          </tr>
-        `;
-      }).join("");
-
-      container.innerHTML = `
-        <div style="max-height:420px; overflow:auto; margin-top:8px;">
-          <table>
-            ${headerHtml}
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    // ------- Team chart -------
-    function renderTeamChart() {
-      const canvas = document.getElementById("teamChart");
-      const chartStatus = document.getElementById("chartFooter");
-      const slashEl = document.getElementById("teamSlashLine");
-
-      if (!players.length) {
-        if (teamChart) {
-          teamChart.destroy();
-          teamChart = null;
-        }
-        if (slashEl) slashEl.textContent = "– / – / –";
-        chartStatus.textContent = "Load season stats to see the team hitting profile.";
-        return;
-      }
-
-      let totalAB = 0;
-      let totalH  = 0;
-      let totalBB = 0;
-      let totalHBP= 0;
-      let totalSF = 0;
-      let totalTB = 0;
-
-      players.forEach(p => {
-        const AB = p.AB || 0;
-        const H  = p.H  || 0;
-        const _2B = p._2B || 0;
-        const _3B = p._3B || 0;
-        const HR  = p.HR_hit || 0;
-        const BB  = p.BB_hit || 0;
-        const HBP = p.HBP_hit || 0;
-        const SF  = p.SF || 0;
-
-        const singles = Math.max(0, H - _2B - _3B - HR);
-        const TB = singles + 2 * _2B + 3 * _3B + 4 * HR;
-
-        totalAB += AB;
-        totalH  += H;
-        totalBB += BB;
-        totalHBP+= HBP;
-        totalSF += SF;
-        totalTB += TB;
-      });
-
-      let teamAVG = 0, teamOBP = 0, teamSLG = 0, teamOPS = 0;
-      if (totalAB > 0) {
-        teamAVG = totalH / totalAB;
-        teamSLG = totalTB / totalAB;
-      }
-      const obpDen = totalAB + totalBB + totalHBP + totalSF;
-      if (obpDen > 0) {
-        teamOBP = (totalH + totalBB + totalHBP) / obpDen;
-      }
-      teamOPS = teamOBP + teamSLG;
-
-      if (slashEl) {
-        slashEl.textContent = `${format3(teamAVG)} / ${format3(teamOBP)} / ${format3(teamSLG)}`;
-      }
-
-      const labels = ["AVG", "OBP", "SLG", "OPS"];
-      const values = [teamAVG, teamOBP, teamSLG, teamOPS];
-
-      if (teamChart) {
-        teamChart.destroy();
-      }
-
-      const ctx = canvas.getContext("2d");
-      teamChart = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Team Hitting Profile",
-            data: values
-          }]
-        },
-        options: {
+        const options = {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: {
-              ticks: { color: "#d2d6f0" },
-              grid: { display: false }
-            },
             y: {
               beginAtZero: true,
-              ticks: { color: "#d2d6f0" },
-              grid: { color: "rgba(255,255,255,0.06)" }
-            }
+              ticks: {
+                callback: (val) => val.toFixed(3),
+              },
+            },
           },
           plugins: {
-            legend: { labels: { color: "#d2d6f0" } },
+            legend: {
+              display: false,
+            },
             tooltip: {
               callbacks: {
-                label: ctx => ` ${ctx.label}: ${ctx.parsed.y.toFixed(3)}`
-              }
-            }
-          }
+                label: (ctx) => {
+                  const v = ctx.parsed.y;
+                  return `${ctx.label}: ${v.toFixed(3)}`;
+                },
+              },
+            },
+          },
+        };
+
+        if (chartInstance) {
+          chartInstance.destroy();
         }
-      });
 
-      chartStatus.textContent = "Team AVG/OBP/SLG/OPS computed from all player rows in the Season Stats data.";
-    }
-
-    // ------- Events -------
-
-    const csvInputEl = document.getElementById("csvFile");
-    if (csvInputEl) {
-      csvInputEl.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        handleCsv(file);
-      });
-    }
-
-    const applySeasonsBtn = document.getElementById("applySeasons");
-    if (applySeasonsBtn) {
-      applySeasonsBtn.addEventListener("click", () => {
-        loadSeasonsFromApi();
-      });
-    }
-
-    // Filter + sort events (dropdown / min PA)
-    document.getElementById("sortBy").addEventListener("change", (e) => {
-      sortKey = e.target.value;
-      sortDir = defaultDirFor(sortKey);
-      renderTable();
-    });
-    document.getElementById("minPA").addEventListener("input", renderTable);
-
-    document.addEventListener("DOMContentLoaded", () => {
-      // Try to load cached manual CSV first (backwards compatible)
-      const cached = loadSeasonCsv();
-      updateSeasonBadge(!!cached);
-      if (cached) {
-        parseSeasonCsvText(cached, { fromStorage: true });
+        chartInstance = new Chart(ctx, {
+          type: "line",
+          data,
+          options,
+        });
       }
-      // Also try to populate seasons from the backend so the user can pick them.
-      fetchHittingSeasons();
-    });
-  </script>
-</body>
+
+      function parseSeasonCsvText(text, { fromStorage = false } = {}) {
+        if (!text) return;
+        setLoadStatus(
+          fromStorage
+            ? "Loaded stats from localStorage cache."
+            : "Loaded stats from selected seasons."
+        );
+
+        const rows = parseCsv(text);
+        if (!rows || !rows.length) {
+          setLoadStatus("CSV appears to be empty or invalid.");
+          return;
+        }
+
+        const combined = combineRowsAcrossSeasons(rows).filter(
+          (r) => r.PA > 0 || r.AB > 0
+        );
+
+        combinedTotals = combined;
+        renderTable(combined);
+        updateTableHeaderSortState();
+        updateTeamChart(combined);
+      }
+
+      // --- Event handlers ---
+
+      async function handleApplySeasonsClick() {
+        const select = document.getElementById("seasonSelect");
+        if (!select) return;
+        const selected = Array.from(select.selectedOptions).map((opt) => opt.value);
+        if (!selected.length) {
+          setLoadStatus("Please select at least one season.");
+          return;
+        }
+
+        setLoadStatus("Loading CSVs from server for selected season(s)…");
+
+        try {
+          const texts = [];
+          for (const id of selected) {
+            const txt = await fetchSeasonCsvFromApi(id);
+            texts.push(txt);
+          }
+
+          const allLines = [];
+          let header = null;
+          for (const t of texts) {
+            const lines = t.replace(/\r\n/g, "\n").split("\n");
+            if (!lines.length) continue;
+            if (!header) {
+              header = lines[0];
+              allLines.push(header);
+            }
+            const dataLines = lines.slice(1).filter((ln) => ln.trim() !== "");
+            allLines.push(...dataLines);
+          }
+
+          const mergedText = allLines.join("\n");
+          saveSeasonCsv(mergedText);
+          updateSeasonBadge(false);
+          parseSeasonCsvText(mergedText, { fromStorage: false });
+        } catch (err) {
+          console.error("Error applying selected seasons", err);
+          setLoadStatus(
+            "Error loading seasons from API. You can still upload a CSV manually."
+          );
+        }
+      }
+
+      function handleCsvFileChange(evt) {
+        const fileInput = evt.target;
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target.result;
+          if (!text) {
+            setLoadStatus("Uploaded file is empty.");
+            return;
+          }
+          saveSeasonCsv(text);
+          updateSeasonBadge(true);
+          parseSeasonCsvText(text, { fromStorage: true });
+        };
+        reader.readAsText(file);
+      }
+
+      function handleClearStorageClick() {
+        clearSeasonCsv();
+        setLoadStatus("Cleared locally cached CSV. You can re-upload or select seasons.");
+        combinedTotals = null;
+        renderTable([]);
+        updateTeamChart([]);
+      }
+
+      function handleClearSeasonsClick() {
+        const select = document.getElementById("seasonSelect");
+        if (select) {
+          Array.from(select.options).forEach((opt) => (opt.selected = false));
+        }
+        setLoadStatus("Cleared selected seasons. No server CSVs loaded.");
+        combinedTotals = null;
+        renderTable([]);
+        updateTeamChart([]);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        attachHeaderSortHandlers();
+
+        const fileInput = document.getElementById("csvFileInput");
+        if (fileInput) {
+          fileInput.addEventListener("change", handleCsvFileChange);
+        }
+
+        const clearBtn = document.getElementById("clearStorageBtn");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", handleClearStorageClick);
+        }
+
+        const applyBtn = document.getElementById("applySeasonsBtn");
+        if (applyBtn) {
+          applyBtn.addEventListener("click", handleApplySeasonsClick);
+        }
+
+        const clearSeasonsBtn = document.getElementById("clearSeasonsBtn");
+        if (clearSeasonsBtn) {
+          clearSeasonsBtn.addEventListener("click", handleClearSeasonsClick);
+        }
+
+        const cached = loadSeasonCsv();
+        updateSeasonBadge(!!cached);
+        if (cached) {
+          parseSeasonCsvText(cached, { fromStorage: true });
+        }
+        fetchHittingSeasons();
+        fetchHittingLastUpdated();
+      });
+    </script>
+  </body>
 </html>
